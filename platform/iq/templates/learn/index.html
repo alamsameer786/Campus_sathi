@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Learning hubs{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <div><span class="eyebrow">Learn</span><h1 class="page-title">Learning hubs</h1><p class="mt-1 font-body-md text-on-surface-variant max-w-2xl">Pick a path. Every topic has AI-written notes, practice questions, video links and a quiz. Your progress is saved.</p></div>
+  <div class="grid md:grid-cols-2 gap-5">
+    {% for t in tracks %}
+    <a href="{% url 'learn_track' t.slug %}" class="card card-hover !p-6 flex flex-col gap-4">
+      <div class="flex items-start gap-4">
+        <span class="icon-tile !w-14 !h-14 bg-gradient-to-br from-primary to-secondary text-on-primary"><span class="material-symbols-outlined text-[28px]">{{ t.icon }}</span></span>
+        <div class="min-w-0"><h2 class="font-headline-sm text-headline-sm">{{ t.title }}</h2><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">{{ t.tagline }}</p></div>
+      </div>
+      <div class="flex flex-wrap gap-2">{% for g in t.groups|slice:":4" %}<span class="chip">{{ g.title }}</span>{% endfor %}</div>
+      <div>
+        <div class="flex justify-between text-[12px] text-on-surface-variant mb-1"><span>{{ t.done }} of {{ t.topic_count }} topics done</span><span>{{ t.percent }}%</span></div>
+        <div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: {{ t.percent }}%"></div></div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

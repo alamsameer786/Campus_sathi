@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Account{% endblock %}
+{% block subtitle %}Account{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md space-y-space-lg">
+  <section class="card flex items-center gap-space-md">
+    <div class="w-16 h-16 rounded-full bg-primary overflow-hidden flex items-center justify-center shrink-0">
+      {% if profile.avatar %}<img src="{{ profile.avatar.url }}" alt="" class="w-full h-full object-cover"/>{% else %}<span class="font-headline-sm text-on-primary uppercase">{{ user.username|slice:":1" }}</span>{% endif %}
+    </div>
+    <div class="min-w-0"><p class="font-title-md text-title-md truncate">{% firstof user.get_full_name user.username %}</p><p class="font-body-sm text-body-sm text-on-surface-variant truncate">@{{ user.username }}{% if profile.university %} · {{ profile.university }}{% endif %}</p>
+      <div class="flex gap-space-xs mt-space-xs"><span class="chip"><span class="material-symbols-outlined filled text-amber-500 text-[14px]">local_fire_department</span>{{ profile.live_streak }} day streak</span><span class="chip"><span class="material-symbols-outlined filled text-secondary text-[14px]">workspace_premium</span>{{ profile.karma }} karma</span></div></div>
+  </section>
+
+  <section class="grid grid-cols-4 gap-space-sm text-center">
+    <div class="card !p-space-sm"><p class="font-title-md text-title-md">{{ stats.materials }}</p><p class="font-label-xs text-label-xs text-on-surface-variant">Uploads</p></div>
+    <div class="card !p-space-sm"><p class="font-title-md text-title-md">{{ stats.quizzes }}</p><p class="font-label-xs text-label-xs text-on-surface-variant">Quizzes</p></div>
+    <div class="card !p-space-sm"><p class="font-title-md text-title-md">{{ stats.videos }}</p><p class="font-label-xs text-label-xs text-on-surface-variant">Videos</p></div>
+    <div class="card !p-space-sm"><p class="font-title-md text-title-md">{{ stats.plans }}</p><p class="font-label-xs text-label-xs text-on-surface-variant">Plans</p></div>
+  </section>
+
+  <section>
+    <h2 class="font-headline-sm text-headline-sm mb-space-sm">Profile</h2>
+    <form method="post" enctype="multipart/form-data" class="card space-y-space-md">
+      {% csrf_token %}
+      <div class="grid grid-cols-2 gap-space-sm">
+        <div><label class="label" for="first_name">First name</label><input class="input" id="first_name" name="first_name" value="{{ form.first_name.value|default:'' }}"/></div>
+        <div><label class="label" for="last_name">Last name</label><input class="input" id="last_name" name="last_name" value="{{ form.last_name.value|default:'' }}"/></div>
+      </div>
+      <div><label class="label" for="email">Email</label><input class="input" id="email" type="email" name="email" value="{{ form.email.value|default:'' }}"/>{% for e in form.email.errors %}<p class="text-error text-[13px] mt-1">{{ e }}</p>{% endfor %}</div>
+      <div><label class="label" for="university">University</label><input class="input" id="university" name="university" value="{{ form.university.value|default:'' }}"/></div>
+      <div><label class="label" for="target_exam">Target exam</label><input class="input" id="target_exam" name="target_exam" value="{{ form.target_exam.value|default:'' }}" placeholder="e.g. Semester 5 finals"/></div>
+      <div><label class="label" for="bio">Bio</label><textarea class="input" id="bio" name="bio" rows="2" maxlength="500">{{ form.bio.value|default:'' }}</textarea></div>
+      <div><label class="label" for="avatar">Profile photo</label><input class="input !py-2.5 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-fixed file:text-primary file:px-3 file:py-1.5 file:font-label-sm" id="avatar" type="file" name="avatar" accept="image/*"/>{% for e in form.avatar.errors %}<p class="text-error text-[13px] mt-1">{{ e }}</p>{% endfor %}</div>
+      <button class="btn-primary w-full" type="submit">Save profile</button>
+    </form>
+  </section>
+
+  <section>
+    <h2 class="font-headline-sm text-headline-sm mb-space-sm">Change password</h2>
+    <form method="post" class="card space-y-space-md">
+      {% csrf_token %}<input type="hidden" name="form" value="password"/>
+      {% for f in pw_form %}<div><label class="label" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% for e in f.errors %}<p class="text-error text-[13px] mt-1">{{ e }}</p>{% endfor %}</div>{% endfor %}
+      <button class="btn-soft w-full" type="submit">Update password</button>
+    </form>
+  </section>
+
+  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn-danger w-full" type="submit"><span class="material-symbols-outlined text-[20px]">logout</span>Log out</button></form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>document.querySelectorAll('#id_old_password,#id_new_password1,#id_new_password2').forEach(i => i.className = 'input');</script>
+{% endblock %}

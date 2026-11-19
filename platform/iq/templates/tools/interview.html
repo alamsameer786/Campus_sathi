@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Mock interview{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <div><span class="eyebrow">Job preparation</span><h1 class="page-title">Mock interview</h1>
+    <p class="mt-1 font-body-md text-on-surface-variant max-w-2xl">Practise for a real role. The AI interviewer asks one question at a time, reacts to your answers, and gives an honest scorecard when you finish.</p></div>
+
+  <form id="iv-setup" class="card grid sm:grid-cols-3 gap-3 items-end">
+    <div class="sm:col-span-3"><label class="label" for="iv-role">Job role</label>
+      <input id="iv-role" class="input" maxlength="80" placeholder="e.g. Junior Python developer, Civil site engineer, Data analyst"/></div>
+    <div><label class="label" for="iv-level">Level</label>
+      <select id="iv-level" class="input"><option value="fresher">Fresher</option><option value="junior">Junior</option><option value="mid-level">Mid-level</option><option value="senior">Senior</option></select></div>
+    <div><label class="label" for="iv-kind">Round</label>
+      <select id="iv-kind" class="input"><option value="mixed">Mixed</option><option value="HR">HR</option><option value="technical">Technical</option><option value="behavioural">Behavioural</option></select></div>
+    <button type="submit" class="btn-primary !h-11">Start interview</button>
+    <p id="iv-err" class="hidden sm:col-span-3 rounded-lg bg-error-container text-on-error-container px-3 py-2 font-body-sm text-body-sm"></p>
+  </form>
+
+  <section id="iv-room" class="hidden space-y-3">
+    <div class="flex items-center justify-between"><p id="iv-title" class="font-title-md text-title-md"></p>
+      <div class="flex gap-2"><button type="button" id="iv-finish" class="btn-soft btn-sm"><span class="material-symbols-outlined text-[18px]">flag</span>Finish &amp; get feedback</button>
+        <button type="button" id="iv-reset" class="btn-ghost btn-sm">New</button></div></div>
+    <div id="iv-list" class="space-y-3 min-h-[40vh]" aria-live="polite"></div>
+    <form id="iv-form" class="flex items-end gap-2 sticky bottom-20 lg:bottom-4 bg-surface/90 backdrop-blur rounded-2xl p-1">
+      <textarea id="iv-answer" rows="2" maxlength="2500" class="input !rounded-2xl resize-none" placeholder="Type your answer… (Enter to send, Shift+Enter for new line)"></textarea>
+      <button type="submit" class="btn-primary !w-12 !px-0 shrink-0" aria-label="Send answer"><span class="material-symbols-outlined">send</span></button>
+    </form>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const csrf = () => document.querySelector('meta[name="csrf-token"]').content;
+  let history = [], cfg = null, done = false;
+
+  function bubble(role, text) {
+    const w = document.createElement('div'); w.className = 'flex ' + (role === 'user' ? 'justify-end' : 'justify-start');
+    const b = document.createElement('div');
+    if (role === 'user') { b.className = 'max-w-[85%] rounded-2xl rounded-br-md bg-primary text-on-primary px-4 py-2.5 font-body-sm text-body-sm whitespace-pre-wrap'; b.textContent = text; }
+    else { b.className = 'max-w-[92%] rounded-2xl rounded-bl-md bg-surface-container-lowest shadow-sm px-4 py-3 prose-md'; b.innerHTML = DOMPurify.sanitize(marked.parse(text, {breaks:true, gfm:true})); }
+    w.appendChild(b); $('iv-list').appendChild(w); w.scrollIntoView({block:'end', behavior:'smooth'}); return w;
+  }
+  async function turn(finish) {
+    const fd = new FormData();
+    fd.append('role', cfg.role); fd.append('level', cfg.level); fd.append('kind', cfg.kind);
+    fd.append('history', JSON.stringify(history)); if (finish) fd.append('finish', '1');
+    const wait = bubble('model', '…'); wait.firstChild.classList.add('animate-pulse');
+    let res;
+    try { res = await (await fetch('{% url "interview_turn" %}', {method:'POST', body: fd, headers:{'X-CSRFToken': csrf()}, credentials:'same-origin'})).json(); }
+    catch (e) { res = {ok:false, error:'Network error. Please try again.'}; }
+    wait.remove();
+    if (!res.ok) { bubble('model', '⚠️ ' + (res.error || 'Something went wrong.')); return false; }
+    history.push({role:'model', text: res.reply}); bubble('model', res.reply); return true;
+  }
+  $('iv-setup').addEventListener('submit', async e => {
+    e.preventDefault();
+    cfg = {role: $('iv-role').value.trim(), level: $('iv-level').value, kind: $('iv-kind').value};
+    if (cfg.role.length < 2) { $('iv-err').textContent = 'Enter the job role you are preparing for.'; $('iv-err').classList.remove('hidden'); return; }
+    $('iv-err').classList.add('hidden'); history = []; done = false; $('iv-list').innerHTML = '';
+    $('iv-setup').classList.add('hidden'); $('iv-room').classList.remove('hidden');
+    $('iv-title').textContent = cfg.role + ' · ' + cfg.kind + ' round';
+    if (!(await turn(false))) { $('iv-setup').classList.remove('hidden'); $('iv-room').classList.add('hidden'); }
+  });
+  $('iv-form').addEventListener('submit', async e => {
+    e.preventDefault(); if (done) return;
+    const t = $('iv-answer').value.trim(); if (!t) return;
+    $('iv-answer').value = ''; history.push({role:'user', text:t}); bubble('user', t);
+    const btn = e.target.querySelector('button'); btn.disabled = true; await turn(false); btn.disabled = false;
+  });
+  $('iv-answer').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('iv-form').requestSubmit(); } });
+  $('iv-finish').addEventListener('click', async () => {
+    if (!history.some(m => m.role === 'user')) return alert('Answer at least one question first.');
+    done = true; $('iv-form').classList.add('hidden'); $('iv-finish').disabled = true; await turn(true);
+  });
+  $('iv-reset').addEventListener('click', () => { $('iv-room').classList.add('hidden'); $('iv-setup').classList.remove('hidden'); $('iv-form').classList.remove('hidden'); $('iv-finish').disabled = false; });
+})();
+</script>
+{% endblock %}

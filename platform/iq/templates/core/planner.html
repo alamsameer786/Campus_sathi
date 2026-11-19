@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Planner{% endblock %}
+{% block subtitle %}Revision planner{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md space-y-space-lg">
+  <div><span class="eyebrow">Stay on track</span><h1 class="font-headline-md text-headline-md">Revision Planner</h1></div>
+
+  {% if weak_topics %}
+  <div class="card !bg-error-container/50"><p class="font-label-md text-label-md flex items-center gap-1 mb-space-sm"><span class="material-symbols-outlined text-error text-[18px]">radar</span>Weak-spot radar</p>
+    <div class="flex flex-wrap gap-space-xs">{% for t in weak_topics %}<span class="chip !bg-error-container !text-on-error-container">{{ t.topic }} · {{ t.accuracy }}%</span>{% endfor %}</div>
+    <p class="text-[12px] text-on-surface-variant mt-space-sm">New plans automatically give these topics extra time.</p></div>
+  {% endif %}
+
+  {% if plans|length > 1 %}
+  <div class="flex items-center gap-space-xs overflow-x-auto pb-1">{% for p in plans %}<a href="?plan={{ p.pk }}" class="chip {% if active and active.pk == p.pk %}chip-active{% endif %}">{{ p.title }}</a>{% endfor %}</div>
+  {% endif %}
+
+  {% if active %}
+  <section class="space-y-space-md">
+    <div class="rounded-2xl p-space-md bg-gradient-to-br from-primary-container to-primary text-on-primary space-y-space-sm">
+      <div class="flex items-start justify-between gap-space-sm">
+        <div class="min-w-0"><p class="font-title-md text-title-md truncate">{{ active.title }}</p>
+          <p class="font-body-sm text-body-sm text-on-primary-container">Exam {{ active.exam_date|date:"D, j M Y" }} · {% if active.days_left > 0 %}{{ active.days_left }} day{{ active.days_left|pluralize }} left{% elif active.days_left == 0 %}today{% else %}finished{% endif %} · {{ active.hours_per_day|floatformat:"-1" }} h/day</p></div>
+        <span class="font-title-md text-title-md" id="plan-progress">{{ active.progress }}%</span>
+      </div>
+      <div class="w-full bg-white/20 h-2 rounded-full overflow-hidden"><div id="plan-bar" class="h-full bg-white rounded-full transition-all" style="width: {{ active.progress }}%"></div></div>
+    </div>
+
+    {% for d in days %}
+    <div>
+      <p class="font-label-md text-label-md mb-space-sm flex items-center gap-space-xs {% if d.is_today %}text-primary{% elif d.is_past %}text-outline{% endif %}">
+        {{ d.date|date:"D, j M" }}{% if d.is_today %}<span class="chip chip-active">Today</span>{% endif %}</p>
+      <div class="space-y-space-sm">
+        {% for t in d.tasks %}
+        <label class="card flex items-start gap-space-md cursor-pointer {% if d.is_today %}ring-2 ring-primary/30{% endif %}">
+          <input type="checkbox" class="mt-1 w-5 h-5 accent-[#3525cd] shrink-0" {% if t.done %}checked{% endif %} data-toggle="{% url 'task_toggle' t.pk %}"/>
+          <span class="flex-1 min-w-0"><span class="block font-label-md text-label-md {% if t.done %}line-through text-outline{% endif %}">{{ t.title }}</span>
+            {% if t.detail %}<span class="block text-[13px] text-on-surface-variant mt-0.5">{{ t.detail }}</span>{% endif %}
+            <span class="flex gap-space-xs mt-space-xs"><span class="chip"><span class="material-symbols-outlined text-[14px]">schedule</span>{{ t.minutes }} min</span>{% if t.topic %}<span class="chip">{{ t.topic }}</span>{% endif %}</span></span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <form method="post" action="{% url 'plan_delete' active.pk %}" data-confirm="Delete this plan?">{% csrf_token %}<button class="btn-danger btn-sm"><span class="material-symbols-outlined text-[18px]">delete</span>Delete plan</button></form>
+  </section>
+  {% endif %}
+
+  <section id="new" class="space-y-space-sm">
+    <h2 class="font-headline-sm text-headline-sm flex items-center gap-1"><span class="material-symbols-outlined filled text-secondary">auto_awesome</span>{% if active %}Create another plan{% else %}Build your plan{% endif %}</h2>
+    <form method="post" action="{% url 'plan_create' %}" data-ajax data-loading="Planning (up to 30s)…" class="card space-y-space-md">
+      {% csrf_token %}
+      <div data-error class="hidden rounded-xl bg-error-container text-on-error-container px-space-md py-3 font-body-sm text-body-sm"></div>
+      <div class="grid grid-cols-2 gap-space-sm">
+        <div class="col-span-2"><label class="label" for="p-subject">Subject *</label><input class="input" id="p-subject" name="subject" list="p-subjects" maxlength="100" placeholder="e.g. Operating Systems" required/><datalist id="p-subjects">{% for s in subjects %}<option value="{{ s.name }}">{% endfor %}</datalist></div>
+        <div><label class="label" for="p-date">Exam date *</label><input class="input" id="p-date" name="exam_date" type="date" min="{{ today|date:'Y-m-d' }}" required/></div>
+        <div><label class="label" for="p-hours">Hours per day</label><select class="input" id="p-hours" name="hours">{% for h in "12345678" %}<option value="{{ h }}" {% if h == "2" %}selected{% endif %}>{{ h }}</option>{% endfor %}</select></div>
+      </div>
+      <div><label class="label" for="p-topics">Topics to cover</label><textarea class="input" id="p-topics" name="topics" rows="3" maxlength="2000" placeholder="One per line or comma-separated. Leave empty to use your uploaded notes for this subject."></textarea></div>
+      <button class="btn-primary w-full" type="submit" {% if not AI_ENABLED %}disabled{% endif %}><span class="material-symbols-outlined text-[20px]">calendar_month</span>Generate plan</button>
+      {% if not AI_ENABLED %}<p class="font-label-md text-label-md text-error text-center">AI is off: add GEMINI_API_KEY to .env.</p>{% endif %}
+    </form>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-toggle]').forEach(cb => cb.addEventListener('change', async () => {
+  const r = await CampusIQ.post(cb.dataset.toggle, {});
+  if (!r.ok) { cb.checked = !cb.checked; CampusIQ.toast(r.error || 'Could not update task.'); return; }
+  const title = cb.closest('label').querySelector('.font-label-md');
+  title.classList.toggle('line-through', r.done); title.classList.toggle('text-outline', r.done);
+  const p = document.getElementById('plan-progress'), b = document.getElementById('plan-bar');
+  if (p) { p.textContent = r.progress + '%'; b.style.width = r.progress + '%'; }
+}));
+</script>
+{% endblock %}

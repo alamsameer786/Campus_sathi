@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}{{ topic.name }}{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <nav class="font-label-sm text-label-sm text-on-surface-variant flex flex-wrap items-center gap-1 mb-2" aria-label="Breadcrumb">
+    <a href="{% url 'learn_index' %}" class="hover:text-primary">Learn</a><span>/</span><a href="{% url 'learn_track' track.slug %}" class="hover:text-primary">{{ track.title }}</a><span>/</span><span>{{ topic.group }}</span>
+  </nav>
+  <div class="flex flex-col sm:flex-row sm:items-start gap-3 justify-between mb-5">
+    <div><span class="eyebrow">{{ track.title }}</span><h1 class="page-title">{{ topic.name }}</h1></div>
+    <button type="button" class="btn {% if is_done %}btn-soft{% else %}btn-primary{% endif %} shrink-0" id="done-btn" data-url="{% url 'learn_done' track.slug topic.slug %}"><span class="material-symbols-outlined text-[20px]">{% if is_done %}check_circle{% else %}task_alt{% endif %}</span><span>{% if is_done %}Completed{% else %}Mark as done{% endif %}</span></button>
+  </div>
+  {% if track.disclaimer %}<div class="mb-5 flex gap-3 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed-variant px-4 py-3 font-body-sm text-body-sm"><span class="material-symbols-outlined">info</span><p>{{ track.disclaimer }}</p></div>{% endif %}
+
+  <div class="grid lg:grid-cols-3 gap-6 items-start">
+    <div class="lg:col-span-2 space-y-5 min-w-0">
+      <!-- tabs -->
+      <div class="flex gap-2" role="tablist">
+        <button class="chip chip-active !px-4 !py-2" data-tab="notes" role="tab">Notes</button>
+        <button class="chip !px-4 !py-2" data-tab="practice" role="tab">Practice questions</button>
+      </div>
+
+      <section data-panel="notes" class="card !p-5 sm:!p-6">
+        {% if notes %}
+        <div class="flex items-center justify-between gap-2 mb-3"><span class="chip">AI-written · updated {{ notes.created_at|timesince }} ago</span>
+          <button class="btn-ghost btn-sm" data-post="{% url 'learn_generate' track.slug topic.slug %}" data-fields='{"kind":"notes","regenerate":"1"}' data-loading="Rewriting…" data-reload="1" data-confirm="Rewrite these notes with AI? The current version will be replaced."><span class="material-symbols-outlined text-[18px]">refresh</span>Regenerate</button></div>
+        <div data-md>{{ notes.content }}</div>
+        {% else %}
+        <div class="text-center py-8 space-y-3">
+          <span class="icon-tile !w-14 !h-14 mx-auto bg-primary-fixed text-primary"><span class="material-symbols-outlined text-[28px]">auto_stories</span></span>
+          <p class="font-title-md text-title-md">Notes for this topic aren't written yet</p>
+          <p class="font-body-sm text-body-sm text-on-surface-variant max-w-md mx-auto">Gemini will write structured notes with examples and a revision sheet. Takes about 15 seconds, and then everyone can read them.</p>
+          <button class="btn-primary" data-post="{% url 'learn_generate' track.slug topic.slug %}" data-fields='{"kind":"notes"}' data-loading="Writing notes…" data-reload="1" {% if not AI_ENABLED %}disabled{% endif %}><span class="material-symbols-outlined text-[20px]">auto_awesome</span>Generate notes</button>
+          {% if not AI_ENABLED %}<p class="text-error font-label-md text-label-md">AI is off — <a class="underline" href="{% url 'ai_setup' %}">set up your key</a>.</p>{% endif %}
+        </div>
+        {% endif %}
+      </section>
+
+      <section data-panel="practice" class="card !p-5 sm:!p-6 hidden">
+        {% if practice %}
+        <div class="flex items-center justify-between gap-2 mb-3"><span class="chip">8 questions with answers</span>
+          <button class="btn-ghost btn-sm" data-post="{% url 'learn_generate' track.slug topic.slug %}" data-fields='{"kind":"practice","regenerate":"1"}' data-loading="Writing…" data-reload="1" data-confirm="Generate a fresh set of questions?"><span class="material-symbols-outlined text-[18px]">refresh</span>New set</button></div>
+        <div data-md>{{ practice.content }}</div>
+        {% else %}
+        <div class="text-center py-8 space-y-3">
+          <span class="icon-tile !w-14 !h-14 mx-auto bg-secondary-fixed text-secondary"><span class="material-symbols-outlined text-[28px]">edit_note</span></span>
+          <p class="font-title-md text-title-md">Get practice questions with worked answers</p>
+          <button class="btn-primary" data-post="{% url 'learn_generate' track.slug topic.slug %}" data-fields='{"kind":"practice"}' data-loading="Writing questions…" data-reload="1" {% if not AI_ENABLED %}disabled{% endif %}><span class="material-symbols-outlined text-[20px]">auto_awesome</span>Generate questions</button>
+        </div>
+        {% endif %}
+      </section>
+
+      <div class="flex justify-between gap-3">
+        {% if prev %}<a href="{% url 'learn_topic' track.slug prev.slug %}" class="btn-soft"><span class="material-symbols-outlined text-[18px]">arrow_back</span><span class="truncate max-w-[10rem] sm:max-w-xs">{{ prev.name }}</span></a>{% else %}<span></span>{% endif %}
+        {% if next %}<a href="{% url 'learn_topic' track.slug next.slug %}" class="btn-soft"><span class="truncate max-w-[10rem] sm:max-w-xs">{{ next.name }}</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span></a>{% endif %}
+      </div>
+    </div>
+
+    <aside class="space-y-5">
+      <section class="card space-y-3">
+        <h2 class="font-label-md text-label-md flex items-center gap-2"><span class="material-symbols-outlined text-primary">quiz</span>Test yourself</h2>
+        <form method="post" action="{% url 'learn_quiz' track.slug topic.slug %}" data-ajax data-loading="Writing quiz…" class="space-y-3">
+          {% csrf_token %}
+          <div data-error class="hidden rounded-xl bg-error-container text-on-error-container px-3 py-2 font-body-sm text-body-sm"></div>
+          <div class="grid grid-cols-2 gap-2"><select class="input" name="difficulty" aria-label="Difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select><select class="input" name="count" aria-label="Questions"><option>5</option><option selected>8</option><option>10</option><option>15</option></select></div>
+          <button class="btn-primary w-full" type="submit" {% if not AI_ENABLED %}disabled{% endif %}>Start quiz</button>
+        </form>
+        {% for q in my_quizzes %}{% with last=q.last_attempt %}<a class="chip hover:bg-primary-fixed w-full justify-between" href="{% if last %}{% url 'quiz_result' q.pk last.pk %}{% else %}{% url 'quiz_take' q.pk %}{% endif %}"><span>Previous quiz</span>{% if last %}<b>{{ last.percent }}%</b>{% endif %}</a>{% endwith %}{% endfor %}
+      </section>
+
+      <section class="card space-y-3">
+        <h2 class="font-label-md text-label-md flex items-center gap-2"><span class="material-symbols-outlined text-secondary">play_circle</span>Watch &amp; learn</h2>
+        <div class="space-y-2">
+          {% for v in videos %}<a href="{{ v.url }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 rounded-xl bg-surface-container-low hover:bg-surface-container px-3 py-2.5"><span class="material-symbols-outlined text-error filled">smart_display</span><span class="flex-1 min-w-0"><span class="block font-label-md text-label-md">{{ v.label }}</span><span class="block text-[11px] text-on-surface-variant truncate">YouTube: {{ v.query }}</span></span><span class="material-symbols-outlined text-outline text-[18px]">open_in_new</span></a>{% endfor %}
+        </div>
+        {% if saved_videos %}<p class="label !mb-0 pt-1">Saved by the community</p>{% for v in saved_videos %}{% include 'partials/_video_card.html' %}{% endfor %}{% endif %}
+        <a href="{% url 'videos' %}" class="font-label-sm text-label-sm text-primary">Save a video you like to the library →</a>
+      </section>
+
+      <section class="card space-y-2">
+        <h2 class="font-label-md text-label-md flex items-center gap-2"><span class="material-symbols-outlined text-tertiary">forum</span>Stuck?</h2>
+        <button class="btn-soft w-full" data-ask-assistant="Explain {{ topic.name }} in simple terms, then give me one tricky example.">Ask the assistant about this topic</button>
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('chip-active', x === b));
+  document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== b.dataset.tab));
+}));
+if (location.hash === '#practice') document.querySelector('[data-tab=practice]').click();
+document.getElementById('done-btn').addEventListener('click', async (e) => {
+  const b = e.currentTarget, r = await CampusIQ.post(b.dataset.url, {});
+  if (!r.ok) return CampusIQ.toast(r.error || 'Could not update.');
+  b.className = 'btn shrink-0 ' + (r.done ? 'btn-soft' : 'btn-primary');
+  b.querySelector('.material-symbols-outlined').textContent = r.done ? 'check_circle' : 'task_alt';
+  b.querySelector('span:last-child').textContent = r.done ? 'Completed' : 'Mark as done';
+  if (r.done) CampusIQ.toast('Nice! +3 karma');
+});
+</script>
+{% endblock %}

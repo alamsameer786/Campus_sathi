@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Quiz result{% endblock %}
+{% block subtitle %}Result{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md space-y-space-md">
+  <a href="{% url 'exams' %}" class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Exams</a>
+  <div class="rounded-3xl p-space-lg text-center text-on-primary bg-gradient-to-b {% if attempt.percent >= 60 %}from-primary to-primary-container{% else %}from-inverse-surface to-primary{% endif %}">
+    <p class="font-label-sm text-label-sm uppercase tracking-wider text-on-primary-container">{{ quiz.title }}</p>
+    <p class="font-display text-display my-1">{{ attempt.score }}/{{ attempt.total }}</p>
+    <p class="font-body-sm text-body-sm text-on-primary-container">{{ attempt.percent }}% ·
+      {% if attempt.percent == 100 %}Perfect!{% elif attempt.percent >= 80 %}Great work{% elif attempt.percent >= 60 %}Solid, keep going{% else %}Review the explanations below{% endif %}</p>
+    <div class="flex gap-space-sm justify-center mt-space-md">
+      <a href="{% url 'quiz_take' quiz.pk %}" class="btn bg-white/20 text-on-primary btn-sm">Retake</a>
+      <a href="{% url 'exams' %}" class="btn bg-surface-container-lowest text-primary btn-sm">New quiz</a>
+    </div>
+  </div>
+
+  <h2 class="font-headline-sm text-headline-sm">Review</h2>
+  {% for r in review %}
+  <div class="card {% if r.correct %}ring-1 ring-primary/30{% else %}ring-1 ring-error/40{% endif %}">
+    <div class="flex items-start gap-space-sm">
+      <span class="material-symbols-outlined filled {% if r.correct %}text-primary{% else %}text-error{% endif %}">{% if r.correct %}check_circle{% else %}cancel{% endif %}</span>
+      <p class="font-label-md text-label-md flex-1" data-md-inline>{{ r.q.text }}</p>
+    </div>
+    <div class="mt-space-sm space-y-1">
+      {% for opt in r.q.options %}
+      <div class="rounded-lg px-space-md py-2 font-body-sm text-body-sm {% if forloop.counter0 == r.q.correct_index %}bg-primary-fixed text-on-primary-fixed font-semibold{% elif forloop.counter0 == r.chosen %}bg-error-container text-on-error-container{% else %}bg-surface-container-low{% endif %}">
+        <span data-md-inline>{{ opt }}</span>{% if forloop.counter0 == r.q.correct_index %} ✓{% elif forloop.counter0 == r.chosen %} — your answer{% endif %}
+      </div>
+      {% endfor %}
+      {% if r.chosen is None %}<p class="text-[12px] text-error">Not answered</p>{% endif %}
+    </div>
+    {% if r.q.explanation %}<p class="mt-space-sm font-body-sm text-body-sm text-on-surface-variant"><b>Why:</b> <span data-md-inline>{{ r.q.explanation }}</span></p>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>document.querySelectorAll('[data-md-inline]').forEach(el => { el.innerHTML = CampusIQ.renderMarkdown(el.textContent).replace(/^<p>|<\/p>\s*$/g, ''); CampusIQ.typeset(el); });</script>
+{% endblock %}

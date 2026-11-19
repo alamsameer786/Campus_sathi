@@ -1,0 +1,13 @@
+{
+  "name": "Campus IQ",
+  "short_name": "Campus IQ",
+  "description": "AI study platform: notes, videos, quizzes, resume, presentations, engineering and licence exam prep.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf8ff",
+  "theme_color": "#3525cd",
+  "icons": [
+    {"src": "/static/core/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/core/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

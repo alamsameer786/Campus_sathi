@@ -1,0 +1,9 @@
+{
+  "name": "campus-iq-frontend",
+  "private": true,
+  "scripts": {
+    "build": "tailwindcss -c tailwind.config.js -i input.css -o ../static/core/tailwind.css --minify",
+    "watch": "tailwindcss -c tailwind.config.js -i input.css -o ../static/core/tailwind.css --watch"
+  },
+  "devDependencies": { "tailwindcss": "3.4.17" }
+}

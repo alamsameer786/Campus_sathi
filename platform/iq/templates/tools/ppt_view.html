@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}{{ pres.title }}{% endblock %}
+{% block content %}
+{{ slides_json|json_script:"slides-data" }}
+<div class="max-w-[88rem] mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4" id="pp" data-save="{% url 'ppt_save' pres.pk %}" data-theme="{{ pres.theme }}">
+  <div class="flex flex-col lg:flex-row lg:items-center gap-3 justify-between">
+    <div class="flex items-center gap-3 min-w-0">
+      <a href="{% url 'ppt_list' %}" class="w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center shrink-0" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></a>
+      <input id="pp-title" value="{{ pres.title }}" maxlength="200" aria-label="Presentation title" class="bg-transparent font-headline-sm text-headline-sm outline-none border-b border-transparent focus:border-primary min-w-0 w-full lg:w-[28rem]"/>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <select id="pp-theme" aria-label="Theme" class="input !h-10 !py-0 !w-auto capitalize">{% for t in themes %}<option value="{{ t }}" {% if t == pres.theme %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+      <span id="pp-status" class="font-label-sm text-label-sm text-on-surface-variant w-16 text-center">Saved</span>
+      <button type="button" id="pp-save" class="btn-soft btn-sm !h-10">Save</button>
+      <a href="{% url 'ppt_download' pres.pk %}" class="btn-primary btn-sm !h-10" id="pp-dl"><span class="material-symbols-outlined text-[18px]">download</span>PowerPoint</a>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-[16rem_minmax(0,1fr)] gap-5 items-start">
+    <!-- slide list -->
+    <aside class="card !p-2 lg:max-h-[75vh] overflow-y-auto">
+      <ol id="pp-list" class="flex lg:block gap-2 overflow-x-auto no-scrollbar lg:space-y-1"></ol>
+      <button type="button" id="pp-add" class="btn-ghost btn-sm w-full mt-1"><span class="material-symbols-outlined text-[18px]">add</span>Add slide</button>
+    </aside>
+
+    <!-- stage -->
+    <div class="space-y-4 min-w-0">
+      <div id="pp-stage" class="aspect-video w-full rounded-2xl shadow-lg overflow-hidden relative"></div>
+      <div class="card space-y-3">
+        <div><label class="label" for="pp-s-title">Slide title</label><input id="pp-s-title" class="input" maxlength="150"/></div>
+        <div><label class="label" for="pp-s-bullets">Bullet points <span class="text-outline font-normal">(one per line)</span></label><textarea id="pp-s-bullets" rows="6" class="input"></textarea></div>
+        <div><label class="label" for="pp-s-notes">Speaker notes</label><textarea id="pp-s-notes" rows="3" class="input"></textarea></div>
+        <div class="flex flex-wrap justify-between gap-2">
+          <div class="flex gap-2"><button type="button" id="pp-up" class="btn-soft btn-sm" aria-label="Move up"><span class="material-symbols-outlined text-[18px]">arrow_upward</span></button>
+            <button type="button" id="pp-down" class="btn-soft btn-sm" aria-label="Move down"><span class="material-symbols-outlined text-[18px]">arrow_downward</span></button></div>
+          <button type="button" id="pp-del" class="btn-ghost btn-sm !text-error"><span class="material-symbols-outlined text-[18px]">delete</span>Delete slide</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const root = document.getElementById('pp');
+  const THEMES = {
+    indigo:  {tb:'#3525CD', bg:'#FFFFFF', tf:'#FFFFFF', fg:'#131B2E', ac:'#4F46E5'},
+    dark:    {tb:'#0F1424', bg:'#0F1424', tf:'#FFFFFF', fg:'#EEF0FF', ac:'#4CD7F6'},
+    emerald: {tb:'#047857', bg:'#F4FBF7', tf:'#FFFFFF', fg:'#0D2A1E', ac:'#059669'},
+    sunset:  {tb:'#DB2777', bg:'#FFF8F3', tf:'#FFFFFF', fg:'#2B140A', ac:'#EA580C'},
+  };
+  let slides = JSON.parse(document.getElementById('slides-data').textContent);
+  let cur = 0, dirty = false;
+  const $ = id => document.getElementById(id);
+  const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  if (!slides.length) slides = [{title:'New slide', bullets:[], notes:''}];
+
+  function status(t) { $('pp-status').textContent = t; }
+  function touch() { dirty = true; status('Unsaved'); }
+
+  function stage() {
+    const th = THEMES[$('pp-theme').value] || THEMES.indigo, s = slides[cur];
+    const bullets = s.bullets.map(b => '<li style="margin:.35em 0">' + esc(b) + '</li>').join('');
+    $('pp-stage').innerHTML =
+      '<div style="position:absolute;inset:0;background:' + th.bg + ';color:' + th.fg + ';container-type:inline-size">' +
+      '<div style="position:absolute;left:0;top:0;bottom:0;width:2%;background:' + th.ac + '"></div>' +
+      '<div style="position:absolute;left:7%;right:6%;top:6%;font-weight:700;font-size:3.4cqw;line-height:1.15">' + esc(s.title) + '</div>' +
+      '<div style="position:absolute;left:7.2%;top:24%;width:9%;height:.9%;background:' + th.ac + ';border-radius:9px"></div>' +
+      '<ul style="position:absolute;left:7%;right:6%;top:29%;bottom:6%;margin:0;padding-left:1.4em;list-style:disc;font-size:2.1cqw;line-height:1.35;overflow:hidden">' + bullets + '</ul>' +
+      '<div style="position:absolute;right:3%;bottom:3%;font-size:1.3cqw;color:' + th.ac + '">' + (cur + 1) + '</div></div>';
+  }
+
+  function list() {
+    $('pp-list').innerHTML = slides.map((s, i) =>
+      '<li class="shrink-0"><button type="button" data-i="' + i + '" class="w-40 lg:w-full text-left rounded-lg px-3 py-2 font-body-sm text-body-sm ' +
+      (i === cur ? 'bg-primary-fixed text-on-primary-fixed font-semibold' : 'hover:bg-surface-container') + '"><span class="text-[11px] opacity-70">' + (i + 1) + '</span> ' + esc(s.title || 'Untitled').slice(0, 60) + '</button></li>').join('');
+  }
+
+  function load() {
+    const s = slides[cur];
+    $('pp-s-title').value = s.title;
+    $('pp-s-bullets').value = s.bullets.join('\n');
+    $('pp-s-notes').value = s.notes || '';
+    stage(); list();
+  }
+
+  function readFields() {
+    const s = slides[cur];
+    s.title = $('pp-s-title').value;
+    s.bullets = $('pp-s-bullets').value.split('\n').map(x => x.trim()).filter(Boolean);
+    s.notes = $('pp-s-notes').value;
+  }
+
+  ['pp-s-title', 'pp-s-bullets', 'pp-s-notes'].forEach(id => $(id).addEventListener('input', () => { readFields(); stage(); touch(); }));
+  $('pp-theme').addEventListener('change', () => { stage(); touch(); });
+  $('pp-title').addEventListener('input', touch);
+  $('pp-list').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; cur = +b.dataset.i; load(); });
+  $('pp-add').addEventListener('click', () => { slides.splice(cur + 1, 0, {title:'New slide', bullets:[], notes:''}); cur++; load(); touch(); });
+  $('pp-del').addEventListener('click', () => {
+    if (slides.length < 2) return alert('A presentation needs at least one slide.');
+    slides.splice(cur, 1); cur = Math.max(0, cur - 1); load(); touch();
+  });
+  $('pp-up').addEventListener('click', () => { if (cur < 1) return; [slides[cur-1], slides[cur]] = [slides[cur], slides[cur-1]]; cur--; load(); touch(); });
+  $('pp-down').addEventListener('click', () => { if (cur >= slides.length - 1) return; [slides[cur+1], slides[cur]] = [slides[cur], slides[cur+1]]; cur++; load(); touch(); });
+
+  async function save() {
+    status('Saving…');
+    try {
+      const j = await CampusIQ.post(root.dataset.save, {payload: JSON.stringify({title: $('pp-title').value, theme: $('pp-theme').value, slides})});
+      if (j.ok) { dirty = false; status('Saved'); return true; }
+      status('Error'); alert(j.error || 'Could not save.');
+    } catch (e) { status('Offline'); }
+    return false;
+  }
+  $('pp-save').addEventListener('click', save);
+  $('pp-dl').addEventListener('click', async e => { if (dirty) { e.preventDefault(); if (await save()) location.href = e.currentTarget.href; } });
+  window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+  load();
+})();
+</script>
+{% endblock %}

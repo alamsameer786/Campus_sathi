@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Videos{% endblock %}
+{% block subtitle %}Video lessons{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md space-y-space-md">
+  <a href="{% url 'notes' %}" class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Notes</a>
+  <div><span class="eyebrow">Watch &amp; learn</span><h1 class="font-headline-md text-headline-md">Video lessons</h1></div>
+
+  <details class="card group" {% if not videos %}open{% endif %}>
+    <summary class="cursor-pointer list-none flex items-center justify-between font-label-md text-label-md"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-primary">add_circle</span>Add a YouTube lesson</span><span class="material-symbols-outlined text-outline group-open:rotate-180 transition-transform">expand_more</span></summary>
+    <form method="post" action="{% url 'video_add' %}" data-ajax data-loading="Adding…" class="space-y-space-md mt-space-md">
+      {% csrf_token %}
+      <div data-error class="hidden rounded-xl bg-error-container text-on-error-container px-space-md py-3 font-body-sm text-body-sm"></div>
+      <div><label class="label" for="v-url">YouTube link *</label><input class="input" id="v-url" name="url" type="url" placeholder="https://www.youtube.com/watch?v=…" required/></div>
+      <div><label class="label" for="v-title">Title *</label><input class="input" id="v-title" name="title" maxlength="200" required/></div>
+      <div><label class="label" for="v-subject">Subject</label><input class="input" id="v-subject" name="subject" list="v-subjects" maxlength="100"/><datalist id="v-subjects">{% for s in subjects %}<option value="{{ s.name }}">{% endfor %}</datalist></div>
+      <div><label class="label" for="v-desc">Notes <span class="font-normal">(helps the AI explainer)</span></label><textarea class="input" id="v-desc" name="description" rows="2" maxlength="1000"></textarea></div>
+      <button class="btn-primary w-full" type="submit">Add video</button>
+    </form>
+  </details>
+
+  <div class="flex items-center gap-space-xs overflow-x-auto pb-1">
+    <a href="{% url 'videos' %}" class="chip {% if not active_subject %}chip-active{% endif %}">All</a>
+    {% for s in subjects %}<a href="?subject={{ s.name|urlencode }}" class="chip {% if active_subject|lower == s.name|lower %}chip-active{% endif %}">{{ s.name }}</a>{% endfor %}
+  </div>
+
+  <div class="space-y-space-sm">
+    {% for v in videos %}{% include 'partials/_video_card.html' %}{% empty %}
+    <p class="text-center font-body-sm text-body-sm text-on-surface-variant py-space-lg">No videos here yet.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

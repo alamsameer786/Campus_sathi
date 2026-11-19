@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Note summarizer{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <div><span class="eyebrow">AI tool</span><h1 class="page-title">Note summarizer</h1>
+    <p class="mt-1 font-body-md text-on-surface-variant max-w-2xl">Paste text, upload a PDF, Word file or photo, or pick one of your notes. Choose a style and get a clean study summary.</p></div>
+
+  <div class="grid lg:grid-cols-2 gap-6 items-start">
+    <form id="sm-form" method="post" action="{% url 'summarize_run' %}" enctype="multipart/form-data" class="card space-y-4">
+      {% csrf_token %}
+      <div><label class="label" for="sm-text">Paste your text</label>
+        <textarea id="sm-text" name="text" rows="9" class="input" placeholder="Paste lecture notes, an article or a chapter…"></textarea></div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="label" for="sm-file">…or upload a file</label>
+          <input id="sm-file" name="file" type="file" accept=".pdf,.docx,.txt,.md,image/*" class="input !p-2 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-fixed file:text-on-primary-fixed file:px-3 file:py-1.5"/></div>
+        <div><label class="label" for="sm-mat">…or one of your notes</label>
+          <select id="sm-mat" name="material" class="input"><option value="">— none —</option>{% for n in notes %}<option value="{{ n.pk }}">{{ n.title|truncatechars:40 }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="label" for="sm-style">Style</label>
+          <select id="sm-style" name="style" class="input">{% for k, v in styles %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+        <div><label class="label" for="sm-lang">Language</label>
+          <select id="sm-lang" name="language" class="input"><option>English</option><option>Nepali</option><option>Hindi</option><option>Spanish</option><option>French</option><option>Arabic</option></select></div>
+      </div>
+      <p data-error class="hidden rounded-lg bg-error-container text-on-error-container px-3 py-2 font-body-sm text-body-sm"></p>
+      <button type="submit" class="btn-primary w-full !h-12"><span class="material-symbols-outlined text-[20px]">summarize</span>Summarize</button>
+    </form>
+
+    <section class="card min-h-[18rem] space-y-3" aria-live="polite">
+      <div class="flex items-center justify-between gap-2"><h2 class="font-title-md text-title-md">Summary</h2>
+        <div id="sm-actions" class="hidden flex gap-2">
+          <button type="button" id="sm-copy" class="btn-soft btn-sm"><span class="material-symbols-outlined text-[18px]">content_copy</span>Copy</button>
+          <button type="button" id="sm-save" class="btn-primary btn-sm"><span class="material-symbols-outlined text-[18px]">bookmark_add</span>Save to notes</button>
+        </div></div>
+      <div id="sm-empty" class="text-center py-10 text-on-surface-variant font-body-sm text-body-sm"><span class="material-symbols-outlined text-[40px] text-outline">auto_stories</span><p class="mt-2">Your summary will appear here.</p></div>
+      <div id="sm-out" class="hidden prose-md"></div>
+      <p id="sm-meta" class="hidden text-[12px] text-outline"></p>
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const form = document.getElementById('sm-form'), out = document.getElementById('sm-out');
+  let raw = '';
+  const csrf = () => document.querySelector('meta[name="csrf-token"]').content;
+  async function postForm(url, fd) {
+    try { const r = await fetch(url, {method:'POST', body: fd, headers: {'X-CSRFToken': csrf()}, credentials:'same-origin'}); return await r.json(); }
+    catch (e) { return {ok:false, error:'Network error. Please try again.'}; }
+  }
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = form.querySelector('[type=submit]'), err = form.querySelector('[data-error]'), html = btn.innerHTML;
+    err.classList.add('hidden'); btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined spin text-[20px]">progress_activity</span><span>Summarizing…</span>';
+    const res = await postForm(form.action, new FormData(form));
+    btn.disabled = false; btn.innerHTML = html;
+    if (!res.ok) { err.textContent = res.error || 'Something went wrong.'; err.classList.remove('hidden'); return; }
+    raw = res.summary;
+    out.innerHTML = DOMPurify.sanitize(marked.parse(raw, {breaks:true, gfm:true}));
+    out.classList.remove('hidden'); document.getElementById('sm-empty').classList.add('hidden');
+    document.getElementById('sm-actions').classList.remove('hidden');
+    const meta = document.getElementById('sm-meta'); meta.textContent = 'Condensed from ' + res.words.toLocaleString() + ' words.'; meta.classList.remove('hidden');
+    out.scrollIntoView({block:'nearest', behavior:'smooth'});
+  });
+  document.getElementById('sm-copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(raw); document.getElementById('toast').textContent = 'Copied'; } catch (e) { document.getElementById('toast').textContent = 'Could not copy'; }
+    const t = document.getElementById('toast'); t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 2000);
+  });
+  document.getElementById('sm-save').addEventListener('click', async () => {
+    const title = prompt('Name for this note:', 'Summary'); if (title === null) return;
+    const fd = new FormData(); fd.append('title', title); fd.append('content', raw);
+    const res = await postForm('{% url "summarize_save" %}', fd);
+    if (res.ok && res.redirect) location.href = res.redirect; else alert(res.error || 'Could not save.');
+  });
+})();
+</script>
+{% endblock %}

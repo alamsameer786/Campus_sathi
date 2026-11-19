@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 grid lg:grid-cols-2 gap-10 items-center">
+  <div class="hidden lg:block">
+    <span class="eyebrow">Welcome back</span>
+    <h1 class="font-display text-display mt-2">Pick up where you <span class="gradient-text">left off.</span></h1>
+    <p class="font-body-lg text-body-lg text-on-surface-variant mt-4 max-w-md">Your notes, quizzes, resumes and revision plan are waiting.</p>
+    <ul class="mt-8 space-y-3 font-body-md text-body-md">
+      <li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary">check_circle</span>AI notes, quizzes and exam answers</li>
+      <li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary">check_circle</span>DSA, engineering and licence-exam courses</li>
+      <li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary">check_circle</span>Resume, slides and mock-interview tools</li>
+    </ul>
+  </div>
+  <div>
+    <h1 class="lg:hidden font-headline-lg-mobile text-headline-lg-mobile mb-1">Log in</h1>
+    <p class="lg:hidden text-on-surface-variant font-body-sm text-body-sm mb-4">Welcome back to Campus IQ.</p>
+    <form method="post" class="card !p-6 space-y-4 shadow-lg">
+      {% csrf_token %}
+      <h2 class="hidden lg:block font-headline-sm text-headline-sm">Log in to Campus IQ</h2>
+      <input type="hidden" name="next" value="{{ next }}"/>
+      {% if form.non_field_errors %}<div class="rounded-xl bg-error-container text-on-error-container px-4 py-3 font-body-sm text-body-sm">{{ form.non_field_errors.0 }}</div>{% endif %}
+      <div><label class="label" for="id_username">Username</label><input class="input" id="id_username" name="username" value="{{ form.username.value|default:'' }}" autocomplete="username" autofocus required/></div>
+      <div><label class="label" for="id_password">Password</label><input class="input" id="id_password" type="password" name="password" autocomplete="current-password" required/></div>
+      <button class="btn-primary w-full" type="submit">Log in</button>
+      <p class="text-center font-body-sm text-body-sm text-on-surface-variant">New here? <a class="text-primary font-semibold" href="{% url 'signup' %}">Create a free account</a></p>
+    </form>
+  </div>
+</div>
+{% endblock %}

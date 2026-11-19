@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Notes{% endblock %}
+{% block subtitle %}Notes &amp; videos{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md space-y-space-md">
+  <div class="flex items-center justify-between">
+    <div><span class="eyebrow">Library</span><h1 class="font-headline-md text-headline-md">Notes &amp; Videos</h1></div>
+    <a href="{% url 'upload' %}" class="btn btn-primary btn-sm"><span class="material-symbols-outlined text-[18px]">add</span>Add</a>
+  </div>
+
+  <form method="get" class="card !p-space-sm">
+    <div class="flex items-center gap-space-xs bg-surface-container-low rounded-xl px-space-md py-2.5">
+      <span class="material-symbols-outlined text-primary text-[20px]">search</span>
+      <input name="q" value="{{ q }}" placeholder="Search notes, topics, subjects…" class="bg-transparent border-0 outline-none w-full font-body-sm text-body-sm placeholder:text-outline"/>
+      {% if active_subject %}<input type="hidden" name="subject" value="{{ active_subject }}"/>{% endif %}
+      {% if mine %}<input type="hidden" name="mine" value="1"/>{% endif %}
+    </div>
+  </form>
+
+  <div class="flex items-center gap-space-xs overflow-x-auto pb-1">
+    <a href="{% url 'notes' %}" class="chip {% if not active_subject and not mine %}chip-active{% endif %}">All</a>
+    <a href="?mine=1" class="chip {% if mine %}chip-active{% endif %}">My uploads</a>
+    {% for s in subjects %}<a href="?subject={{ s.name|urlencode }}" class="chip {% if active_subject|lower == s.name|lower %}chip-active{% endif %}">{{ s.name }}</a>{% endfor %}
+  </div>
+
+  <div class="space-y-space-sm">
+    {% for m in materials %}{% include 'partials/_material_card.html' %}{% empty %}
+      {% url 'upload' as up %}
+      {% if q or active_subject or mine %}{% include 'partials/_empty.html' with icon='search_off' title='Nothing matches' text='Try a different search or clear the filters.' %}
+      {% else %}{% include 'partials/_empty.html' with icon='upload_file' title='No notes yet' text='Upload a PDF, DOCX, image or paste text. Everyone can read notes marked as shared.' url=up cta='Add your first note' %}{% endif %}
+    {% endfor %}
+  </div>
+
+  <section class="pt-space-md">
+    <div class="flex items-end justify-between mb-space-sm"><div><span class="eyebrow">Watch</span><h2 class="font-headline-sm text-headline-sm">Video lessons</h2></div><a href="{% url 'videos' %}" class="font-label-md text-label-md text-primary">See all</a></div>
+    <div class="space-y-space-sm">
+      {% for v in videos %}{% include 'partials/_video_card.html' %}{% empty %}
+      {% url 'videos' as vu %}{% include 'partials/_empty.html' with icon='play_circle' title='No videos yet' text='Add YouTube lessons to build a shared video library.' url=vu cta='Add a video' %}
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

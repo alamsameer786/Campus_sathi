@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Presentation generator{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <div><span class="eyebrow">AI tool</span><h1 class="page-title">Presentation generator</h1>
+    <p class="mt-1 font-body-md text-on-surface-variant max-w-2xl">Type any topic and get a complete slide deck with speaker notes. Edit every slide, choose a theme and download a PowerPoint file.</p></div>
+
+  <div class="grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] gap-6 items-start">
+    <form method="post" action="{% url 'ppt_create' %}" data-ajax data-loading="Writing your slides…" class="card space-y-4 lg:sticky lg:top-24">
+      {% csrf_token %}
+      <div><label class="label" for="p-topic">Topic</label>
+        <input id="p-topic" name="topic" class="input" maxlength="300" placeholder="e.g. Introduction to Machine Learning"/></div>
+      {% if notes %}
+      <div><label class="label" for="p-mat">…or build it from one of your notes</label>
+        <select id="p-mat" name="material" class="input"><option value="">— none —</option>
+          {% for n in notes %}<option value="{{ n.pk }}">{{ n.title|truncatechars:50 }}</option>{% endfor %}</select></div>
+      {% endif %}
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="label" for="p-count">Slides</label>
+          <select id="p-count" name="count" class="input"><option>5</option><option>6</option><option selected>8</option><option>10</option><option>12</option><option>15</option></select></div>
+        <div><label class="label" for="p-tone">Tone</label>
+          <select id="p-tone" name="tone" class="input"><option value="professional">Professional</option><option value="academic">Academic</option><option value="friendly">Friendly</option><option value="persuasive">Persuasive</option><option value="simple">Simple</option></select></div>
+      </div>
+      <div><label class="label" for="p-aud">Audience <span class="text-outline font-normal">(optional)</span></label>
+        <input id="p-aud" name="audience" class="input" maxlength="120" placeholder="e.g. 2nd-year engineering students"/></div>
+      <div><span class="label">Theme</span>
+        <div class="flex gap-2" role="radiogroup" aria-label="Theme">
+          {% for t in themes %}<label class="cursor-pointer"><input type="radio" name="theme" value="{{ t }}" class="peer sr-only" {% if forloop.first %}checked{% endif %}/>
+            <span class="block px-3 h-9 leading-9 rounded-lg bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm capitalize peer-checked:bg-primary peer-checked:text-on-primary peer-focus-visible:ring-2 ring-primary">{{ t }}</span></label>{% endfor %}
+        </div></div>
+      <p data-error class="hidden rounded-lg bg-error-container text-on-error-container px-3 py-2 font-body-sm text-body-sm"></p>
+      <button type="submit" class="btn-primary w-full !h-12"><span class="material-symbols-outlined text-[20px]">auto_awesome</span>Generate presentation</button>
+      {% if not AI_ENABLED %}<p class="text-[12px] text-on-surface-variant">AI is off. Add <code>GEMINI_API_KEY</code> to <code>.env</code> and restart.</p>{% endif %}
+    </form>
+
+    <div>
+      <h2 class="font-title-md text-title-md mb-3">Your presentations</h2>
+      <div class="grid sm:grid-cols-2 gap-4">
+        {% for d in decks %}
+        <div class="card card-hover flex flex-col gap-3">
+          <a href="{% url 'ppt_view' d.pk %}" class="flex items-start gap-3">
+            <span class="icon-tile bg-secondary-fixed text-secondary"><span class="material-symbols-outlined">slideshow</span></span>
+            <span class="min-w-0"><span class="block font-label-md text-label-md line-clamp-2">{{ d.title }}</span>
+              <span class="block text-[12px] text-on-surface-variant">{{ d.slides|length }} slides · {{ d.theme|capfirst }} · {{ d.created_at|timesince }} ago</span></span>
+          </a>
+          <div class="flex gap-2 mt-auto"><a href="{% url 'ppt_view' d.pk %}" class="btn-soft btn-sm flex-1">Open</a>
+            <a href="{% url 'ppt_download' d.pk %}" class="btn-ghost btn-sm" title="Download .pptx"><span class="material-symbols-outlined text-[18px]">download</span></a>
+            <form method="post" action="{% url 'ppt_delete' d.pk %}" data-confirm="Delete this presentation?">{% csrf_token %}<button class="btn-ghost btn-sm !text-error" title="Delete"><span class="material-symbols-outlined text-[18px]">delete</span></button></form></div>
+        </div>
+        {% empty %}
+        <div class="sm:col-span-2">{% include 'partials/_empty.html' with icon='slideshow' title='No presentations yet' text='Enter a topic on the left and generate your first deck.' %}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

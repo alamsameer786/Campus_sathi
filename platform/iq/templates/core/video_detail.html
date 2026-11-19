@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}{{ v.title }}{% endblock %}
+{% block subtitle %}Video lesson{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md space-y-space-md">
+  <a href="{% url 'videos' %}" class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Videos</a>
+  <div class="rounded-2xl overflow-hidden bg-inverse-surface aspect-video shadow-md">
+    <iframe class="w-full h-full" src="{{ v.embed_url }}" title="{{ v.title }}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>
+  </div>
+  <header>
+    <div class="flex flex-wrap gap-space-xs mb-space-sm">{% if v.subject %}<span class="chip chip-active">{{ v.subject.name }}</span>{% endif %}<span class="chip">added by {{ v.added_by.username }}</span></div>
+    <h1 class="font-headline-sm text-headline-sm">{{ v.title }}</h1>
+    {% if v.description %}<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">{{ v.description }}</p>{% endif %}
+  </header>
+
+  <div class="flex flex-wrap gap-space-sm">
+    <button id="watched-btn" class="{% if is_watched %}btn-soft{% else %}btn-primary{% endif %} btn-sm" {% if is_watched %}disabled{% endif %}><span class="material-symbols-outlined text-[18px] {% if is_watched %}filled{% endif %}">check_circle</span><span>{% if is_watched %}Watched{% else %}Mark as watched{% endif %}</span></button>
+    <a href="{{ v.url }}" target="_blank" rel="noopener noreferrer" class="btn-soft btn-sm"><span class="material-symbols-outlined text-[18px]">open_in_new</span>YouTube</a>
+    <a href="{% url 'exams' %}?topic={{ v.title|urlencode }}{% if v.subject %}&subject={{ v.subject.name|urlencode }}{% endif %}#quiz" class="btn-soft btn-sm"><span class="material-symbols-outlined text-[18px]">sports_score</span>Quiz me</a>
+    {% if v.added_by_id == user.id %}<form method="post" action="{% url 'video_delete' v.pk %}" data-confirm="Remove this video?">{% csrf_token %}<button class="btn-danger btn-sm"><span class="material-symbols-outlined text-[18px]">delete</span>Remove</button></form>{% endif %}
+  </div>
+
+  <section class="space-y-space-sm">
+    <div class="flex items-center justify-between"><h2 class="font-headline-sm text-headline-sm flex items-center gap-1"><span class="material-symbols-outlined filled text-secondary">auto_awesome</span>AI explainer</h2>
+      {% if v.ai_explainer %}<button class="btn-soft btn-sm" data-post="{% url 'video_explain' v.pk %}" data-loading="Rewriting…"><span class="material-symbols-outlined text-[16px]">refresh</span>Redo</button>{% endif %}</div>
+    {% if v.ai_explainer %}
+      <div class="card" data-md>{{ v.ai_explainer }}</div>
+      <p class="text-[12px] text-outline">Written by AI from the video's title and your notes, not from its audio. Verify details with the video itself.</p>
+    {% else %}
+      <div class="card text-center space-y-space-sm">
+        <p class="font-body-sm text-body-sm text-on-surface-variant">Get a short companion: what you'll learn, core idea, key terms, a worked example and a self-check.</p>
+        {% if AI_ENABLED %}<button class="btn-primary" data-post="{% url 'video_explain' v.pk %}" data-loading="Writing…"><span class="material-symbols-outlined text-[20px]">auto_awesome</span>Generate explainer</button>{% else %}<p class="font-label-md text-label-md text-error">AI is off: add GEMINI_API_KEY to .env.</p>{% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+  {% if related %}<section><h2 class="font-headline-sm text-headline-sm mb-space-sm">More in {{ v.subject.name }}</h2><div class="space-y-space-sm">{% for v in related %}{% include 'partials/_video_card.html' %}{% endfor %}</div></section>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const wb = document.getElementById('watched-btn');
+wb.addEventListener('click', async () => {
+  const r = await CampusIQ.post("{% url 'video_watched' v.pk %}", {});
+  if (r.ok) { wb.className = 'btn btn-soft btn-sm'; wb.disabled = true; wb.querySelector('span:last-child').textContent = 'Watched'; wb.querySelector('.material-symbols-outlined').classList.add('filled'); }
+  else CampusIQ.toast(r.error || 'Could not save.');
+});
+</script>
+{% endblock %}

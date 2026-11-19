@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}{{ quiz.title }}{% endblock %}
+{% block subtitle %}Quiz{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md">
+  <a href="{% url 'exams' %}" class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant mb-space-sm"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Exams</a>
+  <h1 class="font-headline-sm text-headline-sm">{{ quiz.title }}</h1>
+  <p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">{{ questions|length }} questions · {{ quiz.difficulty|title }}</p>
+  <div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mb-space-md"><div id="bar" class="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all" style="width:0%"></div></div>
+
+  <form method="post" action="{% url 'quiz_submit' quiz.pk %}" id="quiz-form" class="space-y-space-md">
+    {% csrf_token %}
+    {% for q in questions %}
+    <fieldset class="card" data-q>
+      <legend class="sr-only">Question {{ forloop.counter }}</legend>
+      <p class="font-label-sm text-label-sm text-primary mb-1">Question {{ forloop.counter }} of {{ questions|length }}</p>
+      <p class="font-title-md text-title-md mb-space-md" data-md-inline>{{ q.text }}</p>
+      <div class="space-y-space-sm">
+        {% for opt in q.options %}
+        <label class="block cursor-pointer"><input type="radio" class="peer sr-only" name="q_{{ q.pk }}" value="{{ forloop.counter0 }}"/>
+          <span class="flex items-start gap-space-sm rounded-xl bg-surface-container-low peer-checked:bg-primary-fixed peer-checked:ring-2 peer-checked:ring-primary px-space-md py-3 font-body-sm text-body-sm transition">
+            <span class="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center font-label-sm text-[11px] shrink-0">{{ forloop.counter }}</span><span data-md-inline>{{ opt }}</span></span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    {% endfor %}
+    <button class="btn-primary w-full" type="submit">Submit answers</button>
+    <p class="text-center text-[12px] text-outline">Unanswered questions count as wrong.</p>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-md-inline]').forEach(el => { el.innerHTML = CampusIQ.renderMarkdown(el.textContent).replace(/^<p>|<\/p>\s*$/g, ''); CampusIQ.typeset(el); });
+const qs = [...document.querySelectorAll('[data-q]')], bar = document.getElementById('bar');
+document.getElementById('quiz-form').addEventListener('change', () => {
+  const done = qs.filter(f => f.querySelector('input:checked')).length;
+  bar.style.width = Math.round(done * 100 / qs.length) + '%';
+});
+document.getElementById('quiz-form').addEventListener('submit', e => {
+  const left = qs.filter(f => !f.querySelector('input:checked')).length;
+  if (left && !confirm(left + ' question' + (left > 1 ? 's are' : ' is') + ' unanswered. Submit anyway?')) e.preventDefault();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}AI setup guide{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-5">
+  <div><span class="eyebrow">Help</span><h1 class="page-title">Turn on the AI (2 minutes)</h1>
+    <p class="mt-2 font-body-md text-on-surface-variant">Campus IQ uses Google's <b>free</b> Gemini API. You only need to paste a key into a file once.</p></div>
+  <div class="card flex items-center gap-3 {% if AI_ENABLED %}!bg-primary-fixed{% else %}!bg-error-container{% endif %}">
+    <span class="material-symbols-outlined">{% if AI_ENABLED %}check_circle{% else %}error{% endif %}</span>
+    <p class="font-label-md text-label-md">{% if AI_ENABLED %}AI is ON. A Gemini key was found.{% else %}AI is OFF. The server can't see GEMINI_API_KEY yet.{% endif %}</p>
+  </div>
+  <ol class="space-y-3">
+    <li class="card"><p class="font-label-md text-label-md">1. Get a free key</p><p class="font-body-sm text-on-surface-variant mt-1">Open <a class="text-primary underline" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>, sign in with Google, click <b>Create API key</b> and copy it (it starts with <code>AIza</code>).</p></li>
+    <li class="card"><p class="font-label-md text-label-md">2. Create the .env file</p><p class="font-body-sm text-on-surface-variant mt-1">In the project's <code>iq</code> folder (the one with <code>manage.py</code>), copy <code>.env.example</code> and name the copy exactly <code>.env</code>. On Windows make sure it isn't <code>.env.txt</code> (turn on "File name extensions" in File Explorer).</p></li>
+    <li class="card"><p class="font-label-md text-label-md">3. Paste the key</p><pre class="mt-2 rounded-xl bg-inverse-surface text-inverse-on-surface p-3 text-[13px] overflow-x-auto">GEMINI_API_KEY=AIzaSy...your_key_here</pre><p class="font-body-sm text-on-surface-variant mt-2">No quotes, no spaces around the equals sign.</p></li>
+    <li class="card"><p class="font-label-md text-label-md">4. Restart the server</p><p class="font-body-sm text-on-surface-variant mt-1">Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal, then run <code>python manage.py runserver</code> again. Reload this page: the status above should turn green.</p></li>
+  </ol>
+  <p class="font-body-sm text-on-surface-variant">Free-tier keys have per-minute and daily limits. If you see a "rate limit" message, wait a minute and retry.</p>
+</div>
+{% endblock %}

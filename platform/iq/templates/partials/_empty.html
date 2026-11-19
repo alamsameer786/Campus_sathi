@@ -1,0 +1,6 @@
+<div class="card text-center py-space-xl flex flex-col items-center gap-space-sm">
+  <div class="w-14 h-14 rounded-2xl bg-primary-fixed text-primary flex items-center justify-center"><span class="material-symbols-outlined text-[28px]">{{ icon|default:"inbox" }}</span></div>
+  <p class="font-title-md text-title-md">{{ title }}</p>
+  {% if text %}<p class="font-body-sm text-body-sm text-on-surface-variant max-w-xs">{{ text }}</p>{% endif %}
+  {% if url %}<a href="{{ url }}" class="btn btn-primary mt-space-xs">{{ cta }}</a>{% endif %}
+</div>

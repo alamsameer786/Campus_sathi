@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Resume maker{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+    <div><span class="eyebrow">AI tool</span><h1 class="page-title">Resume maker</h1><p class="mt-1 font-body-md text-on-surface-variant max-w-2xl">Build an ATS-friendly resume with live preview. AI writes your summary, sharpens your bullets and checks your fit against a job post. Export to PDF or Word.</p></div>
+    <form method="post" action="{% url 'resume_create' %}" class="flex gap-2">{% csrf_token %}<input class="input !w-48" name="title" placeholder="Resume name" maxlength="120" aria-label="Resume name"/><button class="btn-primary"><span class="material-symbols-outlined text-[20px]">add</span>New resume</button></form>
+  </div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for r in resumes %}
+    <div class="card card-hover flex flex-col gap-3">
+      <a href="{% url 'resume_edit' r.pk %}" class="flex items-start gap-3">
+        <span class="icon-tile bg-primary-fixed text-primary"><span class="material-symbols-outlined">description</span></span>
+        <span class="min-w-0"><span class="block font-label-md text-label-md truncate">{{ r.title }}</span><span class="block text-[12px] text-on-surface-variant">{{ r.get_template_display }} template · edited {{ r.updated_at|timesince }} ago</span></span>
+      </a>
+      <div class="flex gap-2"><a href="{% url 'resume_edit' r.pk %}" class="btn-soft btn-sm flex-1">Edit</a><a href="{% url 'resume_docx' r.pk %}" class="btn-ghost btn-sm" title="Download Word"><span class="material-symbols-outlined text-[18px]">download</span></a>
+        <form method="post" action="{% url 'resume_delete' r.pk %}" data-confirm="Delete this resume?">{% csrf_token %}<button class="btn-ghost btn-sm !text-error" title="Delete"><span class="material-symbols-outlined text-[18px]">delete</span></button></form></div>
+    </div>
+    {% empty %}
+    <div class="sm:col-span-2 lg:col-span-3">{% include 'partials/_empty.html' with icon='badge' title='No resumes yet' text='Name your first resume above and start building.' %}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

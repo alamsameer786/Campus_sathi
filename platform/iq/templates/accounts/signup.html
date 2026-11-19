@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 grid lg:grid-cols-2 gap-10 items-center">
+  <div class="hidden lg:block">
+    <span class="eyebrow">Get started free</span>
+    <h1 class="font-display text-display mt-2">Study smarter with <span class="gradient-text">your own AI tutor.</span></h1>
+    <div class="grid grid-cols-2 gap-3 mt-8">
+      <div class="card !p-4"><span class="material-symbols-outlined text-primary">auto_stories</span><p class="font-label-md text-label-md mt-1">Smart notes</p></div>
+      <div class="card !p-4"><span class="material-symbols-outlined text-secondary">badge</span><p class="font-label-md text-label-md mt-1">Resume maker</p></div>
+      <div class="card !p-4"><span class="material-symbols-outlined text-tertiary">slideshow</span><p class="font-label-md text-label-md mt-1">Slide generator</p></div>
+      <div class="card !p-4"><span class="material-symbols-outlined text-primary">verified</span><p class="font-label-md text-label-md mt-1">Licence exam prep</p></div>
+    </div>
+  </div>
+  <div>
+    <h1 class="lg:hidden font-headline-lg-mobile text-headline-lg-mobile mb-4">Create your account</h1>
+    <form method="post" class="card !p-6 space-y-4 shadow-lg">
+      {% csrf_token %}
+      <h2 class="hidden lg:block font-headline-sm text-headline-sm">Create your account</h2>
+      <input type="hidden" name="next" value="{{ next }}"/>
+      <div><label class="label" for="id_username">Username</label><input class="input" id="id_username" name="username" value="{{ form.username.value|default:'' }}" autocomplete="username" required/>{% for e in form.username.errors %}<p class="text-error font-body-sm text-body-sm mt-1">{{ e }}</p>{% endfor %}</div>
+      <div><label class="label" for="id_email">Email <span class="font-normal">(optional)</span></label><input class="input" id="id_email" type="email" name="email" value="{{ form.email.value|default:'' }}" autocomplete="email"/>{% for e in form.email.errors %}<p class="text-error font-body-sm text-body-sm mt-1">{{ e }}</p>{% endfor %}</div>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div><label class="label" for="id_password1">Password</label><input class="input" id="id_password1" type="password" name="password1" autocomplete="new-password" required/>{% for e in form.password1.errors %}<p class="text-error font-body-sm text-body-sm mt-1">{{ e }}</p>{% endfor %}</div>
+        <div><label class="label" for="id_password2">Confirm password</label><input class="input" id="id_password2" type="password" name="password2" autocomplete="new-password" required/>{% for e in form.password2.errors %}<p class="text-error font-body-sm text-body-sm mt-1">{{ e }}</p>{% endfor %}</div>
+      </div>
+      <p class="text-[12px] text-outline">At least 8 characters, not too common. By signing up you agree to the <a class="text-primary" href="{% url 'terms' %}">Terms</a> and <a class="text-primary" href="{% url 'privacy' %}">Privacy Policy</a>.</p>
+      <button class="btn-primary w-full" type="submit">Create account</button>
+      <p class="text-center font-body-sm text-body-sm text-on-surface-variant">Already registered? <a class="text-primary font-semibold" href="{% url 'login' %}">Log in</a></p>
+    </form>
+  </div>
+</div>
+{% endblock %}

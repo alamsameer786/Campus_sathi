@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}{{ resume.title }}{% endblock %}
+{% block content %}
+{{ resume_json|json_script:"resume-data" }}
+<div class="max-w-[88rem] mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4" id="rs-app"
+     data-save="{% url 'resume_save' resume.pk %}" data-ai="{% url 'resume_ai' resume.pk %}" data-template="{{ resume.template }}" data-accent="{{ resume.accent }}">
+  <!-- toolbar -->
+  <div class="flex flex-col xl:flex-row xl:items-center gap-3 justify-between">
+    <div class="flex items-center gap-3 min-w-0">
+      <a href="{% url 'resume_list' %}" class="w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center shrink-0" aria-label="Back"><span class="material-symbols-outlined">arrow_back</span></a>
+      <input id="rs-title" value="{{ resume.title }}" maxlength="120" aria-label="Resume name" class="bg-transparent font-headline-sm text-headline-sm outline-none border-b border-transparent focus:border-primary min-w-0 w-full"/>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="flex rounded-xl bg-surface-container-high p-1" role="group" aria-label="Template">
+        {% for key, label in resume.TEMPLATES %}<button type="button" data-tpl="{{ key }}" class="px-3 h-8 rounded-lg font-label-sm text-label-sm">{{ label }}</button>{% endfor %}
+      </div>
+      <div class="flex items-center gap-1" role="group" aria-label="Accent colour">
+        <button type="button" data-accent="#3525cd" class="w-6 h-6 rounded-full ring-offset-2 ring-offset-surface" style="background:#3525cd" aria-label="Indigo"></button>
+        <button type="button" data-accent="#0f766e" class="w-6 h-6 rounded-full ring-offset-2 ring-offset-surface" style="background:#0f766e" aria-label="Teal"></button>
+        <button type="button" data-accent="#b91c1c" class="w-6 h-6 rounded-full ring-offset-2 ring-offset-surface" style="background:#b91c1c" aria-label="Red"></button>
+        <button type="button" data-accent="#1d4ed8" class="w-6 h-6 rounded-full ring-offset-2 ring-offset-surface" style="background:#1d4ed8" aria-label="Blue"></button>
+        <button type="button" data-accent="#a21caf" class="w-6 h-6 rounded-full ring-offset-2 ring-offset-surface" style="background:#a21caf" aria-label="Magenta"></button>
+        <button type="button" data-accent="#111827" class="w-6 h-6 rounded-full ring-offset-2 ring-offset-surface" style="background:#111827" aria-label="Black"></button>
+      </div>
+      <span id="rs-status" class="font-label-sm text-label-sm text-on-surface-variant w-16 text-center">Saved</span>
+      <button type="button" id="rs-save" class="btn-soft btn-sm !h-10">Save</button>
+      <a href="{% url 'resume_docx' resume.pk %}" class="btn-soft btn-sm !h-10" id="rs-docx"><span class="material-symbols-outlined text-[18px]">description</span>Word</a>
+      <button type="button" id="rs-pdf" class="btn-primary btn-sm !h-10"><span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>PDF</button>
+    </div>
+  </div>
+
+  <!-- mobile tabs -->
+  <div class="xl:hidden flex rounded-xl bg-surface-container-high p-1">
+    <button type="button" data-view="edit" class="flex-1 h-9 rounded-lg font-label-md text-label-md bg-surface-container-lowest shadow-sm">Edit</button>
+    <button type="button" data-view="preview" class="flex-1 h-9 rounded-lg font-label-md text-label-md">Preview</button>
+  </div>
+
+  <div class="grid xl:grid-cols-[minmax(0,32rem)_minmax(0,1fr)] gap-6 items-start">
+    <!-- editor -->
+    <div id="rs-form" class="space-y-3 min-w-0"></div>
+    <!-- preview -->
+    <div id="rs-preview-col" class="hidden xl:block xl:sticky xl:top-20 space-y-4 min-w-0">
+      <div class="xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto no-scrollbar rounded-xl bg-surface-container p-3 sm:p-5"><div id="resume-paper" class="paper"></div></div>
+    </div>
+  </div>
+
+  <!-- ATS -->
+  <section class="card !p-5 space-y-3" id="ats">
+    <div class="flex items-center gap-2"><span class="material-symbols-outlined filled text-secondary">fact_check</span><h2 class="font-headline-sm text-headline-sm">Check against a job description (ATS)</h2></div>
+    <p class="font-body-sm text-body-sm text-on-surface-variant">Paste a job post. AI estimates your match, shows missing keywords and suggests honest edits. It never invents experience for you.</p>
+    <textarea id="ats-jd" rows="5" class="input" maxlength="8000" placeholder="Paste the job description here…"></textarea>
+    <button type="button" class="btn-primary" id="ats-run" {% if not AI_ENABLED %}disabled{% endif %}><span class="material-symbols-outlined text-[20px]">auto_awesome</span>Analyse my resume</button>
+    <div id="ats-out" class="hidden grid md:grid-cols-3 gap-4 pt-2"></div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const app = document.getElementById('rs-app');
+  const D = JSON.parse(document.getElementById('resume-data').textContent);
+  ['name','title','email','phone','location','linkedin','github','website','summary','skills','certifications','achievements'].forEach(k => D[k] = D[k] || '');
+  ['education','experience','projects'].forEach(k => D[k] = D[k] || []);
+  const state = { template: app.dataset.template, accent: app.dataset.accent, dirty: false };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const lines = t => String(t || '').split('\n').map(x => x.replace(/^[\s\-•*]+/, '').trim()).filter(Boolean);
+  const $ = (s, r) => (r || document).querySelector(s);
+  const aiOn = {{ AI_ENABLED|yesno:"true,false" }};
+
+  const EMPTY = { education: { school:'', degree:'', period:'', details:'' }, experience: { company:'', role:'', period:'', bullets:'' }, projects: { name:'', tech:'', link:'', bullets:'' } };
+  const input = (label, attrs, cls) => `<div class="${cls || ''}"><label class="label">${label}</label><input class="input" ${attrs}/></div>`;
+  const area = (label, attrs, rows, val) => `<div><label class="label">${label}</label><textarea class="input" rows="${rows}" ${attrs}>${esc(val)}</textarea></div>`;
+  const val = v => `value="${esc(v)}"`;
+  const top = (k, label, ph, cls) => input(label, `data-f="${k}" ${val(D[k])} placeholder="${ph || ''}"`, cls);
+
+  function itemCard(list, i, it) {
+    const f = (k, label, ph, cls) => input(label, `data-list="${list}" data-i="${i}" data-k="${k}" ${val(it[k])} placeholder="${ph || ''}"`, cls);
+    const b = (rows) => area('Bullet points (one per line)', `data-list="${list}" data-i="${i}" data-k="bullets" placeholder="What did you build or achieve?"`, rows, it.bullets);
+    const btn = `<button type="button" class="btn-soft btn-sm" data-improve="${list}" data-i="${i}" ${aiOn ? '' : 'disabled'}><span class="material-symbols-outlined text-[16px]">auto_awesome</span>Improve with AI</button>`;
+    let body = '';
+    if (list === 'experience') body = `<div class="grid sm:grid-cols-2 gap-3">${f('role','Role','e.g. Software Intern')}${f('company','Company','')}${f('period','Period','e.g. Jun 2025 – Aug 2025','sm:col-span-2')}</div>${b(4)}${btn}`;
+    if (list === 'projects') body = `<div class="grid sm:grid-cols-2 gap-3">${f('name','Project name','')}${f('tech','Tech used','e.g. Django, PostgreSQL')}${f('link','Link','https://…','sm:col-span-2')}</div>${b(4)}${btn}`;
+    if (list === 'education') body = `<div class="grid sm:grid-cols-2 gap-3">${f('degree','Degree','e.g. B.E. Computer Engineering')}${f('school','College / University','')}${f('period','Period','e.g. 2022 – 2026')}${f('details','Details','e.g. CGPA, honours')}</div>`;
+    return `<div class="rounded-xl border border-outline-variant/40 p-3 space-y-3 bg-surface-container-low"><div class="flex justify-between items-center"><span class="font-label-sm text-label-sm text-on-surface-variant">#${i + 1}</span><button type="button" class="btn-ghost btn-sm !text-error" data-remove="${list}" data-i="${i}" aria-label="Remove"><span class="material-symbols-outlined text-[18px]">delete</span></button></div>${body}</div>`;
+  }
+  const section = (id, icon, title, inner, open) => `<details class="card !p-0 group" ${open ? 'open' : ''}><summary class="flex items-center gap-3 px-4 h-14 cursor-pointer list-none"><span class="material-symbols-outlined text-primary">${icon}</span><span class="font-label-md text-label-md flex-1">${title}</span><span class="material-symbols-outlined text-outline transition group-open:rotate-180">expand_more</span></summary><div class="px-4 pb-4 space-y-3">${inner}</div></details>`;
+  const listSection = (list, label) => `${D[list].map((it, i) => itemCard(list, i, it)).join('')}<button type="button" class="btn-soft btn-sm" data-add="${list}"><span class="material-symbols-outlined text-[18px]">add</span>Add ${label}</button>`;
+
+  function renderForm() {
+    const open = [...document.querySelectorAll('#rs-form details')].map(d => d.open);
+    $('#rs-form').innerHTML =
+      section('p','person','Personal details', `<div class="grid sm:grid-cols-2 gap-3">${top('name','Full name')}${top('title','Professional title','e.g. Computer Engineering Student')}${top('email','Email')}${top('phone','Phone')}${top('location','Location','City, Country')}${top('linkedin','LinkedIn','linkedin.com/in/…')}${top('github','GitHub','github.com/…')}${top('website','Website / portfolio')}</div>`, true) +
+      section('s','notes','Summary', `${area('Professional summary','data-f="summary" placeholder="2–3 sentences about you"',4,D.summary)}<button type="button" class="btn-soft btn-sm" id="ai-summary" ${aiOn ? '' : 'disabled'}><span class="material-symbols-outlined text-[16px]">auto_awesome</span>Write with AI</button><p class="text-[12px] text-outline">Fill in education, skills and projects first. AI only uses what you've entered.</p>`, true) +
+      section('k','bolt','Skills', `${area('Skills (comma separated)','data-f="skills" placeholder="Python, Django, SQL, Git…"',3,D.skills)}`) +
+      section('e','work','Experience', listSection('experience','experience')) +
+      section('j','code','Projects', listSection('projects','project')) +
+      section('d','school','Education', listSection('education','education')) +
+      section('c','military_tech','Certifications & achievements', `${area('Certifications (one per line)','data-f="certifications"',3,D.certifications)}${area('Achievements (one per line)','data-f="achievements"',3,D.achievements)}`);
+    document.querySelectorAll('#rs-form details').forEach((d, i) => { if (open[i] !== undefined) d.open = open[i]; });
+  }
+
+  function renderPaper() {
+    const c = [D.email, D.phone, D.location, D.linkedin, D.github, D.website].filter(Boolean).map(esc).join(' &nbsp;·&nbsp; ');
+    const ul = t => { const l = lines(t); return l.length ? `<ul>${l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''; };
+    const sec = (t, inner) => inner ? `<h2>${t}</h2>${inner}` : '';
+    const exp = D.experience.map(e => `<div class="item"><div class="row"><span><b>${esc(e.role)}</b>${e.company ? ' · ' + esc(e.company) : ''}</span><span class="muted">${esc(e.period)}</span></div>${ul(e.bullets)}</div>`).join('');
+    const prj = D.projects.map(e => `<div class="item"><div class="row"><span><b>${esc(e.name)}</b>${e.tech ? ' · <span class="muted">' + esc(e.tech) + '</span>' : ''}</span><span class="muted">${esc(e.link)}</span></div>${ul(e.bullets)}</div>`).join('');
+    const edu = D.education.map(e => `<div class="item"><div class="row"><span><b>${esc(e.degree)}</b>${e.school ? ' · ' + esc(e.school) : ''}</span><span class="muted">${esc(e.period)}</span></div>${e.details ? `<div class="muted">${esc(e.details)}</div>` : ''}</div>`).join('');
+    const p = $('#resume-paper');
+    p.className = 'paper rs-' + state.template;
+    p.style.setProperty('--accent', state.accent);
+    p.innerHTML = `<div class="head"><h1>${esc(D.name) || 'Your Name'}</h1>${D.title ? `<div class="muted" style="margin-top:2px">${esc(D.title)}</div>` : ''}<div class="contact muted" style="margin-top:6px">${c}</div></div>` +
+      sec('Summary', D.summary ? `<p style="margin:0">${esc(D.summary)}</p>` : '') +
+      sec('Skills', D.skills ? `<p style="margin:0">${esc(D.skills)}</p>` : '') +
+      sec('Experience', exp) + sec('Projects', prj) + sec('Education', edu) +
+      sec('Certifications', ul(D.certifications)) + sec('Achievements', ul(D.achievements));
+  }
+
+  function markDirty() { state.dirty = true; $('#rs-status').textContent = 'Unsaved'; clearTimeout(markDirty.t); markDirty.t = setTimeout(save, 2000); }
+  async function save() {
+    clearTimeout(markDirty.t);
+    $('#rs-status').textContent = 'Saving…';
+    const r = await CampusIQ.post(app.dataset.save, { payload: JSON.stringify({ title: $('#rs-title').value, template: state.template, accent: state.accent, data: D }) });
+    if (r.ok) { state.dirty = false; $('#rs-status').textContent = 'Saved'; } else { $('#rs-status').textContent = 'Error'; CampusIQ.toast(r.error || 'Could not save.'); }
+    return r.ok;
+  }
+  function styleControls() {
+    document.querySelectorAll('[data-tpl]').forEach(b => { const on = b.dataset.tpl === state.template; b.className = 'px-3 h-8 rounded-lg font-label-sm text-label-sm ' + (on ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant'); });
+    document.querySelectorAll('button[data-accent]').forEach(b => b.classList.toggle('ring-2', b.dataset.accent === state.accent) );
+    document.querySelectorAll('button[data-accent]').forEach(b => b.style.setProperty('--tw-ring-color', b.dataset.accent));
+  }
+
+  document.addEventListener('input', e => {
+    const t = e.target;
+    if (t.matches('[data-f]')) { D[t.dataset.f] = t.value; }
+    else if (t.matches('[data-list]')) { D[t.dataset.list][+t.dataset.i][t.dataset.k] = t.value; }
+    else if (t.id !== 'rs-title') return;
+    renderPaper(); markDirty();
+  });
+  document.addEventListener('click', async e => {
+    const t = e.target.closest('button'); if (!t || !app.contains(t)) return;
+    if (t.dataset.tpl) { state.template = t.dataset.tpl; styleControls(); renderPaper(); markDirty(); }
+    else if (t.matches('button[data-accent]')) { state.accent = t.dataset.accent; styleControls(); renderPaper(); markDirty(); }
+    else if (t.dataset.add) { D[t.dataset.add].push({ ...EMPTY[t.dataset.add] }); renderForm(); renderPaper(); markDirty(); }
+    else if (t.dataset.remove) { D[t.dataset.remove].splice(+t.dataset.i, 1); renderForm(); renderPaper(); markDirty(); }
+    else if (t.dataset.view) {
+      const edit = t.dataset.view === 'edit';
+      $('#rs-form').classList.toggle('hidden', !edit);
+      $('#rs-preview-col').classList.toggle('hidden', edit); $('#rs-preview-col').classList.add('xl:block');
+      document.querySelectorAll('[data-view]').forEach(b => b.className = 'flex-1 h-9 rounded-lg font-label-md text-label-md ' + (b === t ? 'bg-surface-container-lowest shadow-sm' : ''));
+    }
+    else if (t.id === 'rs-save') { if (await save()) CampusIQ.toast('Resume saved.'); }
+    else if (t.id === 'rs-pdf') { renderPaper(); await save(); window.print(); }
+    else if (t.id === 'ai-summary') {
+      CampusIQ.setBusy(t, true, 'Writing…');
+      const r = await CampusIQ.post(app.dataset.ai, { payload: JSON.stringify({ action: 'summary', data: D }) });
+      CampusIQ.setBusy(t, false);
+      if (r.ok) { D.summary = r.summary; renderForm(); renderPaper(); markDirty(); } else CampusIQ.toast(r.error);
+    }
+    else if (t.dataset.improve) {
+      const list = t.dataset.improve, i = +t.dataset.i, it = D[list][i];
+      CampusIQ.setBusy(t, true, 'Improving…');
+      const r = await CampusIQ.post(app.dataset.ai, { payload: JSON.stringify({ action: 'bullets', kind: list === 'projects' ? 'project' : 'job', heading: it.role || it.name || '', raw: it.bullets }) });
+      CampusIQ.setBusy(t, false);
+      if (r.ok) { it.bullets = r.bullets.join('\n'); renderForm(); renderPaper(); markDirty(); CampusIQ.toast('Bullets improved. Check they are accurate.'); } else CampusIQ.toast(r.error);
+    }
+    else if (t.id === 'ats-run') {
+      CampusIQ.setBusy(t, true, 'Analysing…');
+      const r = await CampusIQ.post(app.dataset.ai, { payload: JSON.stringify({ action: 'ats', jd: $('#ats-jd').value, data: D }) });
+      CampusIQ.setBusy(t, false);
+      if (!r.ok) return CampusIQ.toast(r.error);
+      const x = r.result, col = x.score >= 75 ? 'text-primary' : x.score >= 50 ? 'text-amber-500' : 'text-error';
+      const chips = (a, cls) => a.map(k => `<span class="chip ${cls}">${esc(k)}</span>`).join(' ') || '<span class="text-on-surface-variant">—</span>';
+      const out = $('#ats-out');
+      out.classList.remove('hidden');
+      out.innerHTML = `<div class="rounded-xl bg-surface-container-low p-4 text-center"><p class="font-display text-display ${col}">${x.score}</p><p class="font-label-sm text-label-sm text-on-surface-variant">Estimated match / 100</p></div>
+        <div class="rounded-xl bg-surface-container-low p-4 space-y-2"><p class="font-label-md text-label-md">Matched keywords</p><div class="flex flex-wrap gap-1.5">${chips(x.matched, '!bg-primary-fixed !text-on-primary-fixed')}</div><p class="font-label-md text-label-md pt-2">Missing keywords</p><div class="flex flex-wrap gap-1.5">${chips(x.missing, '!bg-error-container !text-on-error-container')}</div></div>
+        <div class="rounded-xl bg-surface-container-low p-4"><p class="font-label-md text-label-md mb-1">Suggestions</p><ul class="list-disc pl-5 space-y-1 font-body-sm text-body-sm">${x.suggestions.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>`;
+    }
+  });
+  window.addEventListener('beforeunload', e => { if (state.dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  renderForm(); renderPaper(); styleControls();
+})();
+</script>
+{% endblock %}

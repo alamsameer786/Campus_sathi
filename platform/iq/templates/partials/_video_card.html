@@ -1,0 +1,11 @@
+<a href="{% url 'video_detail' v.pk %}" class="card !p-0 overflow-hidden flex items-stretch active:bg-surface-container-low transition-colors">
+  <div class="relative w-32 shrink-0 bg-inverse-surface">
+    {% if v.thumbnail %}<img src="{{ v.thumbnail }}" alt="" loading="lazy" class="w-full h-full object-cover"/>{% endif %}
+    <span class="absolute inset-0 flex items-center justify-center"><span class="material-symbols-outlined filled text-white text-[34px] drop-shadow">play_circle</span></span>
+  </div>
+  <div class="p-space-md min-w-0 flex-1">
+    <p class="font-label-md text-label-md line-clamp-2">{{ v.title }}</p>
+    <p class="text-[12px] text-on-surface-variant mt-1 truncate">{% if v.subject %}{{ v.subject.name }}{% else %}Video lesson{% endif %}</p>
+    {% if v.pk in watched %}<span class="chip mt-space-sm !bg-primary-fixed !text-primary"><span class="material-symbols-outlined filled text-[14px]">check_circle</span>Watched</span>{% endif %}
+  </div>
+</a>

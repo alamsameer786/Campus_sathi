@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}AI tutor{% endblock %}
+{% block subtitle %}AI tutor{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md">
+  <div class="flex items-center justify-between mb-space-md">
+    <div><span class="eyebrow">Powered by Gemini</span><h1 class="font-headline-md text-headline-md">Ask AI tutor</h1></div>
+    {% if history %}<form method="post" action="{% url 'ask_clear' %}" data-confirm="Clear this conversation?">{% csrf_token %}<button class="btn-soft btn-sm">Clear</button></form>{% endif %}
+  </div>
+  <div data-chat>
+    <div data-chat-list class="space-y-space-sm pb-space-md min-h-[40vh]">
+      {% for c in history %}
+      <div class="flex {% if c.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
+        {% if c.role == 'user' %}<div class="max-w-[85%] rounded-2xl rounded-br-md bg-primary text-on-primary px-4 py-2.5 font-body-sm text-body-sm whitespace-pre-wrap">{{ c.text }}</div>
+        {% else %}<div class="max-w-[92%] rounded-2xl rounded-bl-md bg-surface-container-lowest shadow-sm px-4 py-3 prose-md" data-chat-md>{{ c.text }}</div>{% endif %}
+      </div>
+      {% empty %}
+      <div data-chat-empty class="card text-center space-y-space-sm">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-primary-fixed text-primary flex items-center justify-center"><span class="material-symbols-outlined filled text-[28px]">auto_awesome</span></div>
+        <p class="font-title-md text-title-md">What are you stuck on?</p>
+        <p class="font-body-sm text-body-sm text-on-surface-variant">Ask for an explanation, a worked solution or a quick revision of any topic. For answers based on your own notes, open the note and use “Ask this note”.</p>
+        <div class="flex flex-wrap justify-center gap-space-xs pt-space-xs">
+          <button type="button" class="chip" data-suggest="Explain recursion with a simple example">Explain recursion</button>
+          <button type="button" class="chip" data-suggest="Solve step by step: integrate x*e^x dx">Integrate x·eˣ</button>
+          <button type="button" class="chip" data-suggest="What is the difference between TCP and UDP?">TCP vs UDP</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <form data-url="{% url 'ask_send' %}" class="sticky bottom-24 bg-surface/90 backdrop-blur rounded-2xl">
+      <div class="flex items-end gap-space-sm">
+        <textarea rows="1" class="input !rounded-2xl resize-none shadow-sm" placeholder="{% if AI_ENABLED %}Ask a doubt…{% else %}AI is off: add GEMINI_API_KEY to .env{% endif %}" {% if not AI_ENABLED %}disabled{% endif %}></textarea>
+        <button type="submit" class="btn-primary !px-4 shrink-0" aria-label="Send" {% if not AI_ENABLED %}disabled{% endif %}><span class="material-symbols-outlined text-[20px]">send</span></button>
+      </div>
+      <p class="text-center text-[11px] text-outline mt-1">AI can make mistakes. Check important facts against your syllabus.</p>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-suggest]').forEach(b => b.addEventListener('click', () => {
+  const ta = document.querySelector('[data-chat] textarea'); ta.value = b.dataset.suggest; ta.closest('form').requestSubmit();
+}));
+window.addEventListener('load', () => { const l = document.querySelector('[data-chat-list]'); if (l.lastElementChild) l.lastElementChild.scrollIntoView({block:'end'}); });
+</script>
+{% endblock %}

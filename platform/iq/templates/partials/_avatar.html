@@ -1,0 +1,4 @@
+<span class="rounded-full bg-gradient-to-br from-primary to-secondary text-on-primary flex items-center justify-center overflow-hidden shrink-0 {{ size|default:'w-9 h-9' }}" data-avatar-wrap>
+  <img src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% endif %}" alt="" class="w-full h-full object-cover {% if not user.profile.avatar %}hidden{% endif %}" data-avatar-img/>
+  <span class="font-label-md uppercase {% if user.profile.avatar %}hidden{% endif %}" data-avatar-initial>{{ user.username|slice:":1" }}</span>
+</span>

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Exams{% endblock %}
+{% block subtitle %}Exams &amp; quizzes{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md space-y-space-lg">
+  <div class="flex items-center justify-between">
+    <div><span class="eyebrow">Practice</span><h1 class="font-headline-md text-headline-md">Exams &amp; Quizzes</h1></div>
+    <a href="{% url 'upload' %}?type=paper" class="btn btn-primary btn-sm"><span class="material-symbols-outlined text-[18px]">add</span>Paper</a>
+  </div>
+
+  <section id="quiz" class="space-y-space-sm">
+    <h2 class="font-headline-sm text-headline-sm flex items-center gap-1"><span class="material-symbols-outlined filled text-primary">bolt</span>Rapid quiz</h2>
+    <form method="post" action="{% url 'quiz_create' %}" data-ajax data-loading="Writing your quiz…" class="card space-y-space-md">
+      {% csrf_token %}
+      <div data-error class="hidden rounded-xl bg-error-container text-on-error-container px-space-md py-3 font-body-sm text-body-sm"></div>
+      <div>
+        <label class="label" for="q-material">Quiz me on one of the notes</label>
+        <select class="input" id="q-material" name="material"><option value="">— or type a topic below —</option>{% for n in notes %}<option value="{{ n.pk }}" {% if request.GET.material == n.pk|stringformat:"s" %}selected{% endif %}>{{ n.title }}</option>{% endfor %}</select>
+      </div>
+      <div><label class="label" for="q-topic">Topic</label><input class="input" id="q-topic" name="topic" maxlength="200" value="{{ request.GET.topic }}" placeholder="e.g. Newton's laws of motion"/></div>
+      <div class="grid grid-cols-3 gap-space-sm">
+        <div class="col-span-3 sm:col-span-1"><label class="label" for="q-subject">Subject</label><input class="input" id="q-subject" name="subject" list="q-subjects" maxlength="100" value="{{ request.GET.subject }}"/><datalist id="q-subjects">{% for s in subjects %}<option value="{{ s.name }}">{% endfor %}</datalist></div>
+        <div><label class="label" for="q-diff">Difficulty</label><select class="input" id="q-diff" name="difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+        <div><label class="label" for="q-count">Questions</label><select class="input" id="q-count" name="count"><option>5</option><option selected>8</option><option>10</option><option>15</option></select></div>
+      </div>
+      {% if weak_topics %}<div><p class="label">Weak spots — tap to practise</p><div class="flex flex-wrap gap-space-xs">{% for t in weak_topics %}<button type="button" class="chip !bg-error-container !text-on-error-container" onclick="document.getElementById('q-topic').value=this.dataset.t;document.getElementById('q-material').value=''" data-t="{{ t.topic }}">{{ t.topic }} · {{ t.accuracy }}%</button>{% endfor %}</div></div>{% endif %}
+      <button class="btn-primary w-full" type="submit" {% if not AI_ENABLED %}disabled{% endif %}><span class="material-symbols-outlined text-[20px]">auto_awesome</span>Generate quiz</button>
+      {% if not AI_ENABLED %}<p class="font-label-md text-label-md text-error text-center">AI is off: add GEMINI_API_KEY to .env.</p>{% endif %}
+    </form>
+  </section>
+
+  {% if quizzes %}
+  <section class="space-y-space-sm">
+    <h2 class="font-headline-sm text-headline-sm">Your quizzes</h2>
+    {% for q in quizzes %}{% with last=q.last_attempt %}
+    <a href="{% if last %}{% url 'quiz_result' q.pk last.pk %}{% else %}{% url 'quiz_take' q.pk %}{% endif %}" class="card flex items-center gap-space-md">
+      <div class="w-11 h-11 rounded-xl bg-primary-fixed text-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined">sports_score</span></div>
+      <div class="min-w-0 flex-1"><p class="font-label-md text-label-md truncate">{{ q.title }}</p><p class="text-[12px] text-on-surface-variant">{{ q.difficulty|title }} · {{ q.created_at|timesince }} ago</p></div>
+      {% if last %}<span class="font-title-md text-title-md {% if last.percent >= 60 %}text-primary{% else %}text-error{% endif %}">{{ last.percent }}%</span>{% else %}<span class="chip chip-active">Start</span>{% endif %}
+    </a>
+    {% endwith %}{% endfor %}
+  </section>
+  {% endif %}
+
+  <section class="space-y-space-sm">
+    <h2 class="font-headline-sm text-headline-sm flex items-center gap-1"><span class="material-symbols-outlined text-secondary">assignment_turned_in</span>Past papers</h2>
+    {% for m in papers %}{% include 'partials/_material_card.html' %}{% empty %}
+    {% url 'upload' as up %}{% include 'partials/_empty.html' with icon='assignment' title='No past papers yet' text='Upload a past paper (PDF, photo or text) and get every question answered step by step.' url=up|add:'?type=paper' cta='Add a past paper' %}
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

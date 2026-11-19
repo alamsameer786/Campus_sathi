@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Search{% endblock %}
+{% block subtitle %}Search{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md space-y-space-md">
+  <form method="get" class="card !p-space-sm">
+    <div class="flex items-center gap-space-xs bg-surface-container-low rounded-xl px-space-md py-3">
+      <span class="material-symbols-outlined text-primary text-[20px]">search</span>
+      <input name="q" value="{{ q }}" autofocus placeholder="Search topics, notes, videos, formulas…" class="bg-transparent border-0 outline-none w-full font-body-sm text-body-sm placeholder:text-outline"/>
+    </div>
+  </form>
+  {% if q %}
+    {% if materials %}<h2 class="font-headline-sm text-headline-sm">Notes &amp; papers</h2><div class="space-y-space-sm">{% for m in materials %}{% include 'partials/_material_card.html' %}{% endfor %}</div>{% endif %}
+    {% if videos %}<h2 class="font-headline-sm text-headline-sm">Videos</h2><div class="space-y-space-sm">{% for v in videos %}{% include 'partials/_video_card.html' %}{% endfor %}</div>{% endif %}
+    {% if not materials and not videos %}
+      <div class="card text-center space-y-space-sm"><p class="font-title-md text-title-md">No results for “{{ q }}”</p><p class="font-body-sm text-body-sm text-on-surface-variant">Try different words, or ask the AI tutor directly.</p><a href="{% url 'ask' %}" class="btn-primary">Ask AI tutor</a></div>
+    {% endif %}
+  {% else %}<p class="text-center font-body-sm text-body-sm text-on-surface-variant py-space-lg">Search across your notes, shared materials and video lessons.</p>{% endif %}
+</div>
+{% endblock %}

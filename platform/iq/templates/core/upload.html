@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Add material{% endblock %}
+{% block subtitle %}Add material{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md">
+  <a href="{% url 'notes' %}" class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant mb-space-sm"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back</a>
+  <h1 class="font-headline-md text-headline-md mb-1">Add study material</h1>
+  <p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md">PDF, DOCX, TXT, or a photo/scan (up to {{ MAX_UPLOAD_MB }} MB). Scans and images are read by AI.</p>
+
+  <form method="post" action="{% url 'upload' %}" enctype="multipart/form-data" data-ajax data-loading="Uploading &amp; analysing…" class="card space-y-space-md">
+    {% csrf_token %}
+    <div data-error class="hidden rounded-xl bg-error-container text-on-error-container px-space-md py-3 font-body-sm text-body-sm"></div>
+
+    <div>
+      <label class="label">What are you adding?</label>
+      <div class="grid grid-cols-2 gap-space-sm">
+        <label class="cursor-pointer"><input type="radio" name="material_type" value="notes" class="peer sr-only" {% if preset_type != 'paper' %}checked{% endif %}/><span class="flex items-center justify-center gap-1 h-11 rounded-xl bg-surface-container-low peer-checked:bg-primary peer-checked:text-on-primary font-label-md text-label-md"><span class="material-symbols-outlined text-[18px]">auto_stories</span>Notes</span></label>
+        <label class="cursor-pointer"><input type="radio" name="material_type" value="paper" class="peer sr-only" {% if preset_type == 'paper' %}checked{% endif %}/><span class="flex items-center justify-center gap-1 h-11 rounded-xl bg-surface-container-low peer-checked:bg-primary peer-checked:text-on-primary font-label-md text-label-md"><span class="material-symbols-outlined text-[18px]">assignment_turned_in</span>Past paper</span></label>
+        <label class="cursor-pointer"><input type="radio" name="material_type" value="assignment" class="peer sr-only"/><span class="flex items-center justify-center gap-1 h-11 rounded-xl bg-surface-container-low peer-checked:bg-primary peer-checked:text-on-primary font-label-md text-label-md"><span class="material-symbols-outlined text-[18px]">edit_note</span>Assignment</span></label>
+        <label class="cursor-pointer"><input type="radio" name="material_type" value="reference" class="peer sr-only"/><span class="flex items-center justify-center gap-1 h-11 rounded-xl bg-surface-container-low peer-checked:bg-primary peer-checked:text-on-primary font-label-md text-label-md"><span class="material-symbols-outlined text-[18px]">bookmark</span>Reference</span></label>
+      </div>
+    </div>
+
+    <div><label class="label" for="title">Title *</label><input class="input" id="title" name="title" maxlength="200" placeholder="e.g. Data Structures – Trees" required/></div>
+    <div class="grid grid-cols-2 gap-space-sm">
+      <div><label class="label" for="subject">Subject</label><input class="input" id="subject" name="subject" list="subject-list" maxlength="100" placeholder="Computer Science"/><datalist id="subject-list">{% for s in subjects %}<option value="{{ s.name }}">{% endfor %}</datalist></div>
+      <div><label class="label" for="topic">Topic</label><input class="input" id="topic" name="topic" maxlength="200" placeholder="Binary trees"/></div>
+      <div><label class="label" for="semester">Semester</label><input class="input" id="semester" name="semester" maxlength="50" placeholder="Sem 3"/></div>
+      <div><label class="label" for="year">Exam year <span class="font-normal">(papers)</span></label><input class="input" id="year" name="year" type="number" min="1950" max="2100" placeholder="2024"/></div>
+    </div>
+
+    <div>
+      <label class="label" for="file">File</label>
+      <input class="input !py-2.5 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-fixed file:text-primary file:px-3 file:py-1.5 file:font-label-sm" id="file" type="file" name="file" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp"/>
+    </div>
+    <div><label class="label" for="content">…or paste text</label><textarea class="input" id="content" name="content" rows="5" placeholder="Paste your notes or the exam questions here"></textarea></div>
+
+    <label class="flex items-start gap-space-sm cursor-pointer"><input type="checkbox" name="is_public" checked class="mt-0.5 w-5 h-5 accent-[#3525cd]"/><span class="font-body-sm text-body-sm"><b>Share with everyone</b> <span class="text-on-surface-variant">— earn Campus Karma and help classmates. Untick to keep it private.</span></span></label>
+    <label class="flex items-start gap-space-sm cursor-pointer"><input type="checkbox" name="auto_ai" checked class="mt-0.5 w-5 h-5 accent-[#3525cd]"/><span class="font-body-sm text-body-sm"><b>Analyse with AI now</b> <span class="text-on-surface-variant">— notes get a summary &amp; flashcards, papers get model answers.</span></span></label>
+
+    <button type="submit" class="btn-primary w-full"><span class="material-symbols-outlined text-[20px]">upload</span>Add material</button>
+  </form>
+</div>
+{% endblock %}

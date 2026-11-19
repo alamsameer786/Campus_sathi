@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}{{ m.title }}{% endblock %}
+{% block subtitle %}{{ m.get_material_type_display }}{% endblock %}
+{% block content %}
+<div class="px-margin pt-space-md space-y-space-md">
+  <a href="{% if m.material_type == 'paper' %}{% url 'exams' %}{% else %}{% url 'notes' %}{% endif %}" class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back</a>
+
+  <header>
+    <div class="flex flex-wrap gap-space-xs mb-space-sm">
+      <span class="chip chip-active">{{ m.get_material_type_display }}</span>
+      {% if m.subject %}<span class="chip">{{ m.subject.name }}</span>{% endif %}
+      {% if m.topic %}<span class="chip">{{ m.topic }}</span>{% endif %}
+      {% if m.year %}<span class="chip">{{ m.year }}</span>{% endif %}
+      {% if m.semester %}<span class="chip">{{ m.semester }}</span>{% endif %}
+      {% if not m.is_public %}<span class="chip"><span class="material-symbols-outlined text-[14px]">lock</span>Private</span>{% endif %}
+    </div>
+    <h1 class="font-headline-md text-headline-md">{{ m.title }}</h1>
+    <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">By {{ m.owner.username }} · {{ m.word_count }} words · {{ m.reading_minutes }} min read</p>
+  </header>
+
+  {# ---------------- Study kit ---------------- #}
+  <section class="space-y-space-sm" id="kit">
+    <div class="flex items-center justify-between">
+      <h2 class="font-headline-sm text-headline-sm flex items-center gap-1"><span class="material-symbols-outlined filled text-secondary">auto_awesome</span>AI study kit</h2>
+      {% if kit %}<button class="btn-soft btn-sm" data-post="{% url 'material_generate' m.pk %}" data-fields='{"kind":"kit"}' data-loading="Regenerating…" data-confirm="Regenerate the summary and flashcards?"><span class="material-symbols-outlined text-[16px]">refresh</span>Redo</button>{% endif %}
+    </div>
+    {% if kit %}
+      {% if kit.one_line %}<div class="rounded-2xl p-space-md bg-gradient-to-br from-primary-container to-primary text-on-primary font-body-sm text-body-sm">{{ kit.one_line }}</div>{% endif %}
+      <div class="card"><span class="eyebrow">Summary</span><div class="mt-space-sm" data-md>{{ kit.summary }}</div></div>
+      {% if kit.key_points %}
+      <div class="card"><span class="eyebrow">Key points</span>
+        <ul class="mt-space-sm space-y-space-sm">{% for p in kit.key_points %}<li class="flex gap-space-sm font-body-sm text-body-sm"><span class="material-symbols-outlined text-primary text-[18px] mt-0.5">check_circle</span><span data-md-inline>{{ p }}</span></li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+      {% if kit.flashcards %}
+      <div class="card" id="flash-root">
+        {{ kit.flashcards|json_script:"flash-data" }}
+        <div class="flex items-center justify-between"><span class="eyebrow">Flashcards</span><span class="font-label-xs text-label-xs text-on-surface-variant" id="fc-count"></span></div>
+        <button type="button" id="fc-card" class="w-full mt-space-sm min-h-[150px] rounded-2xl bg-surface-container-low p-space-md flex flex-col items-center justify-center text-center gap-1 active:scale-[0.99] transition">
+          <span id="fc-side" class="font-label-xs text-label-xs uppercase text-primary"></span>
+          <span id="fc-text" class="font-body-md text-body-md"></span>
+          <span class="font-label-xs text-label-xs text-outline mt-2">Tap to flip</span>
+        </button>
+        <div class="flex gap-space-sm mt-space-sm"><button type="button" id="fc-prev" class="btn-soft flex-1 btn-sm">Previous</button><button type="button" id="fc-next" class="btn-primary flex-1 btn-sm">Next</button></div>
+      </div>
+      {% endif %}
+    {% else %}
+      <div class="card text-center space-y-space-sm">
+        <p class="font-body-sm text-body-sm text-on-surface-variant">Generate a summary, key points and flashcards from this material.</p>
+        {% if AI_ENABLED %}<button class="btn-primary" data-post="{% url 'material_generate' m.pk %}" data-fields='{"kind":"kit"}' data-loading="Generating (10-30s)…"><span class="material-symbols-outlined text-[20px]">auto_awesome</span>Generate study kit</button>
+        {% else %}<p class="font-label-md text-label-md text-error">AI is off: add GEMINI_API_KEY to .env.</p>{% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+  {# ---------------- Questions ---------------- #}
+  <section class="space-y-space-sm" id="questions">
+    <div class="flex items-center justify-between">
+      <h2 class="font-headline-sm text-headline-sm">{% if m.material_type == 'paper' %}Questions &amp; model answers{% else %}Practice questions{% endif %}</h2>
+      {% if questions %}<button class="btn-soft btn-sm" data-post="{% url 'material_generate' m.pk %}" data-fields='{"kind":"questions"}' data-loading="Regenerating…" data-confirm="Replace the current questions?"><span class="material-symbols-outlined text-[16px]">refresh</span>Redo</button>{% endif %}
+    </div>
+    {% for q in questions %}
+    <details class="card group">
+      <summary class="cursor-pointer list-none flex items-start gap-space-sm">
+        <span class="w-7 h-7 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-label-sm shrink-0">{{ forloop.counter }}</span>
+        <span class="flex-1 min-w-0"><span class="block font-label-md text-label-md" data-md-inline>{{ q.text }}</span>
+          <span class="flex gap-space-xs mt-space-xs"><span class="chip">{{ q.get_difficulty_display }}</span>{% if q.marks %}<span class="chip">{{ q.marks }} mark{{ q.marks|pluralize }}</span>{% endif %}{% if q.topic %}<span class="chip">{{ q.topic }}</span>{% endif %}</span></span>
+        <span class="material-symbols-outlined text-outline group-open:rotate-180 transition-transform">expand_more</span>
+      </summary>
+      <div class="mt-space-md pt-space-md border-t border-outline-variant/40"><span class="eyebrow">Model answer</span><div class="mt-space-sm" data-md>{{ q.answer }}</div></div>
+    </details>
+    {% empty %}
+    <div class="card text-center space-y-space-sm">
+      <p class="font-body-sm text-body-sm text-on-surface-variant">{% if m.material_type == 'paper' %}Extract every question from this paper and get a full model answer for each.{% else %}Get likely exam questions with model answers based on this material.{% endif %}</p>
+      {% if AI_ENABLED %}<button class="btn-primary" data-post="{% url 'material_generate' m.pk %}" data-fields='{"kind":"questions"}' data-loading="Working (up to a minute)…"><span class="material-symbols-outlined text-[20px]">psychology</span>{% if m.material_type == 'paper' %}Solve this paper{% else %}Generate questions{% endif %}</button>
+      {% else %}<p class="font-label-md text-label-md text-error">AI is off: add GEMINI_API_KEY to .env.</p>{% endif %}
+    </div>
+    {% endfor %}
+  </section>
+
+  {# ---------------- Ask this material ---------------- #}
+  <section class="space-y-space-sm" id="ask">
+    <h2 class="font-headline-sm text-headline-sm flex items-center gap-1"><span class="material-symbols-outlined text-primary">forum</span>Ask this {% if m.material_type == 'paper' %}paper{% else %}note{% endif %}</h2>
+    <div data-chat class="card !p-space-sm">
+      <div data-chat-list class="space-y-space-sm max-h-[420px] overflow-y-auto p-space-sm">
+        {% for c in history %}
+        <div class="flex {% if c.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
+          {% if c.role == 'user' %}<div class="max-w-[85%] rounded-2xl rounded-br-md bg-primary text-on-primary px-4 py-2.5 font-body-sm text-body-sm whitespace-pre-wrap">{{ c.text }}</div>
+          {% else %}<div class="max-w-[92%] rounded-2xl rounded-bl-md bg-surface-container-low px-4 py-3 prose-md" data-chat-md>{{ c.text }}</div>{% endif %}
+        </div>
+        {% empty %}<p data-chat-empty class="text-center font-body-sm text-body-sm text-on-surface-variant py-space-md">Ask anything about this material. Answers are based on its text.</p>{% endfor %}
+      </div>
+      <form data-url="{% url 'material_ask' m.pk %}" class="flex items-end gap-space-sm p-space-sm">
+        <textarea rows="1" class="input !rounded-2xl resize-none" placeholder="e.g. Explain the second point simply" {% if not AI_ENABLED %}disabled{% endif %}></textarea>
+        <button type="submit" class="btn-primary !px-4 shrink-0" {% if not AI_ENABLED %}disabled{% endif %} aria-label="Send"><span class="material-symbols-outlined text-[20px]">send</span></button>
+      </form>
+    </div>
+  </section>
+
+  <section class="card space-y-space-sm">
+    <span class="eyebrow">Actions</span>
+    <div class="flex flex-wrap gap-space-sm">
+      <a href="{% url 'exams' %}?material={{ m.pk }}#quiz" class="btn-soft btn-sm"><span class="material-symbols-outlined text-[18px]">sports_score</span>Quiz me</a>
+      {% if m.file %}<a href="{% url 'material_file' m.pk %}" class="btn-soft btn-sm"><span class="material-symbols-outlined text-[18px]">download</span>Original file</a>{% endif %}
+      <button type="button" class="btn-soft btn-sm" onclick="document.getElementById('full-text').classList.toggle('hidden')"><span class="material-symbols-outlined text-[18px]">article</span>Show full text</button>
+    </div>
+    {% if is_owner %}
+    <form method="post" action="{% url 'material_delete' m.pk %}" data-confirm="Delete this material and everything generated from it?">{% csrf_token %}<button class="btn-danger btn-sm" type="submit"><span class="material-symbols-outlined text-[18px]">delete</span>Delete</button></form>
+    {% endif %}
+    <pre id="full-text" class="hidden whitespace-pre-wrap font-body-sm text-body-sm bg-surface-container-low rounded-xl p-space-md max-h-[480px] overflow-y-auto">{{ m.content }}</pre>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-md-inline]').forEach(el => {
+  el.innerHTML = CampusIQ.renderMarkdown(el.textContent).replace(/^<p>|<\/p>\s*$/g, ''); CampusIQ.typeset(el);
+});
+(function () {
+  const root = document.getElementById('flash-root'); if (!root) return;
+  const cards = JSON.parse(document.getElementById('flash-data').textContent);
+  let i = 0, back = false;
+  const text = document.getElementById('fc-text'), side = document.getElementById('fc-side'), count = document.getElementById('fc-count');
+  function show() {
+    const c = cards[i];
+    side.textContent = back ? 'Answer' : 'Question';
+    text.textContent = back ? c.back : c.front;
+    count.textContent = (i + 1) + ' / ' + cards.length;
+    CampusIQ.typeset(text);
+  }
+  document.getElementById('fc-card').onclick = () => { back = !back; show(); };
+  document.getElementById('fc-next').onclick = () => { i = (i + 1) % cards.length; back = false; show(); };
+  document.getElementById('fc-prev').onclick = () => { i = (i - 1 + cards.length) % cards.length; back = false; show(); };
+  show();
+})();
+</script>
+{% endblock %}

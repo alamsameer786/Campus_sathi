@@ -1,0 +1,16 @@
+{% url 'home' as u_home %}{% url 'notes' as u_notes %}{% url 'videos' as u_videos %}{% url 'exams' as u_exams %}{% url 'planner' as u_planner %}
+{% url 'resume_list' as u_resume %}{% url 'ppt_list' as u_ppt %}{% url 'summarize' as u_sum %}{% url 'interview' as u_int %}{% url 'ask' as u_ask %}{% url 'learn_index' as u_learn %}
+{% include 'partials/_nav_link.html' with url=u_home label='Home' icon='home' key='home' %}
+<p class="side-heading">Learn</p>
+{% for t in NAV_TRACKS %}{% url 'learn_track' t.slug as u_t %}{% with k='learn:'|add:t.slug %}{% include 'partials/_nav_link.html' with url=u_t label=t.title icon=t.icon key=k %}{% endwith %}{% endfor %}
+<p class="side-heading">Study</p>
+{% include 'partials/_nav_link.html' with url=u_notes label='Notes' icon='menu_book' key='notes' %}
+{% include 'partials/_nav_link.html' with url=u_videos label='Video lessons' icon='play_circle' key='videos' %}
+{% include 'partials/_nav_link.html' with url=u_exams label='Exams & quizzes' icon='quiz' key='exams' %}
+{% include 'partials/_nav_link.html' with url=u_planner label='Revision planner' icon='calendar_month' key='planner' %}
+<p class="side-heading">AI tools</p>
+{% include 'partials/_nav_link.html' with url=u_ask label='AI tutor' icon='auto_awesome' key='ask' %}
+{% include 'partials/_nav_link.html' with url=u_sum label='Note summarizer' icon='summarize' key='summarize' %}
+{% include 'partials/_nav_link.html' with url=u_resume label='Resume maker' icon='badge' key='resume' %}
+{% include 'partials/_nav_link.html' with url=u_ppt label='Presentation maker' icon='slideshow' key='ppt' %}
+{% include 'partials/_nav_link.html' with url=u_int label='Mock interview' icon='record_voice_over' key='interview' %}

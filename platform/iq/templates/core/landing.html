@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}AI Study Platform{% endblock %}
+{% block content %}
+<!-- hero -->
+<section class="hero-glow">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-12 sm:pt-20 sm:pb-16 text-center">
+    <span class="inline-flex items-center gap-2 rounded-full bg-primary-fixed text-on-primary-fixed px-4 py-1.5 font-label-xs text-label-xs uppercase tracking-wider"><span class="material-symbols-outlined filled text-[16px]">auto_awesome</span>Powered by Google Gemini</span>
+    <h1 class="font-headline-lg-mobile text-headline-lg-mobile sm:text-display lg:text-display-lg mt-5 max-w-4xl mx-auto">Master any subject. <span class="gradient-text">Ace every exam.</span> Land the job.</h1>
+    <p class="font-body-md text-body-md sm:text-body-lg text-on-surface-variant mt-5 max-w-2xl mx-auto">One AI-powered platform for notes, quizzes, DSA and engineering courses, Nepal engineering licence prep, resumes, presentations and interview practice.</p>
+    <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+      <a href="{% url 'signup' %}" class="btn-primary !h-12 !px-8">Start learning free<span class="material-symbols-outlined text-[20px]">arrow_forward</span></a>
+      <a href="{% url 'login' %}" class="btn-soft !h-12 !px-8">I already have an account</a>
+    </div>
+    <p class="mt-4 font-body-sm text-body-sm text-outline">No credit card needed · Works on phone, tablet and desktop</p>
+  </div>
+</section>
+
+<!-- learning hubs -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="text-center mb-8"><span class="eyebrow">Learning hubs</span><h2 class="font-headline-md text-headline-md sm:text-headline-lg mt-1">A full course library, written by AI on demand</h2></div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    {% for t in tracks %}
+    <div class="card card-hover flex flex-col">
+      <span class="icon-tile bg-primary-fixed text-primary"><span class="material-symbols-outlined">{{ t.icon }}</span></span>
+      <h3 class="font-title-md text-title-md mt-3">{{ t.title }}</h3>
+      <p class="font-body-sm text-body-sm text-on-surface-variant mt-1 flex-1">{{ t.tagline }}</p>
+      <p class="mt-3 font-label-sm text-label-sm text-primary">{{ t.topic_count }} topics · notes · practice · quiz</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- features -->
+<section class="bg-surface-container-low">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+    <div class="text-center mb-10"><span class="eyebrow">Everything in one place</span><h2 class="font-headline-md text-headline-md sm:text-headline-lg mt-1">Built for students and job seekers</h2></div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="card"><span class="icon-tile bg-primary-fixed text-primary"><span class="material-symbols-outlined">auto_stories</span></span><h3 class="font-title-md text-title-md mt-3">Smart notes &amp; summaries</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Upload PDFs, Word files or photos of handwritten notes. Get a summary, key points, flashcards and a chat that answers from your material.</p></div>
+      <div class="card"><span class="icon-tile bg-secondary-fixed text-secondary"><span class="material-symbols-outlined">assignment_turned_in</span></span><h3 class="font-title-md text-title-md mt-3">Past papers with model answers</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Questions are extracted from the paper and answered step by step, with formulas typeset properly.</p></div>
+      <div class="card"><span class="icon-tile bg-tertiary-fixed text-tertiary"><span class="material-symbols-outlined">timer</span></span><h3 class="font-title-md text-title-md mt-3">Quizzes &amp; timed mock tests</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Adaptive MCQs on any topic, plus exam-style timed tests. Mistakes feed your weak-spot radar.</p></div>
+      <div class="card"><span class="icon-tile bg-primary-fixed text-primary"><span class="material-symbols-outlined">badge</span></span><h3 class="font-title-md text-title-md mt-3">Resume maker</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Three clean templates, AI-written summary and bullets, an ATS check against any job post, then download PDF or Word.</p></div>
+      <div class="card"><span class="icon-tile bg-secondary-fixed text-secondary"><span class="material-symbols-outlined">slideshow</span></span><h3 class="font-title-md text-title-md mt-3">Presentation generator</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Type any topic and get a complete slide deck with speaker notes. Edit it, pick a theme and export to PowerPoint.</p></div>
+      <div class="card"><span class="icon-tile bg-tertiary-fixed text-tertiary"><span class="material-symbols-outlined">record_voice_over</span></span><h3 class="font-title-md text-title-md mt-3">Mock interviews</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Practise HR, technical and behavioural rounds for your target role and receive an honest scorecard.</p></div>
+      <div class="card"><span class="icon-tile bg-primary-fixed text-primary"><span class="material-symbols-outlined">calendar_month</span></span><h3 class="font-title-md text-title-md mt-3">Adaptive revision planner</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Give your exam date and topics. Get a daily plan that spends more time on what you keep getting wrong.</p></div>
+      <div class="card"><span class="icon-tile bg-secondary-fixed text-secondary"><span class="material-symbols-outlined">play_circle</span></span><h3 class="font-title-md text-title-md mt-3">Video library</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Curated lecture searches for every topic, plus a shared library of lessons with an AI companion explainer.</p></div>
+      <div class="card"><span class="icon-tile bg-tertiary-fixed text-tertiary"><span class="material-symbols-outlined">auto_awesome</span></span><h3 class="font-title-md text-title-md mt-3">AI assistant everywhere</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">A help guide and tutor one tap away on every page, with dark mode and a layout that fits any device.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- steps -->
+<section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+  <div class="text-center mb-8"><span class="eyebrow">How it works</span><h2 class="font-headline-md text-headline-md sm:text-headline-lg mt-1">From confused to confident in three steps</h2></div>
+  <div class="grid md:grid-cols-3 gap-4">
+    <div class="card text-center"><span class="w-10 h-10 mx-auto rounded-full bg-primary text-on-primary flex items-center justify-center font-label-md">1</span><h3 class="font-title-md text-title-md mt-3">Pick your goal</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">A subject, a licence exam, or a target job role.</p></div>
+    <div class="card text-center"><span class="w-10 h-10 mx-auto rounded-full bg-secondary text-on-secondary flex items-center justify-center font-label-md">2</span><h3 class="font-title-md text-title-md mt-3">Learn &amp; practise</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Read notes, watch videos, solve questions and take quizzes.</p></div>
+    <div class="card text-center"><span class="w-10 h-10 mx-auto rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-label-md">3</span><h3 class="font-title-md text-title-md mt-3">Track &amp; improve</h3><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Streaks, mastery bars and a weak-spot radar show what to fix next.</p></div>
+  </div>
+</section>
+
+<section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+  <div class="rounded-3xl bg-gradient-to-br from-primary to-secondary text-on-primary p-8 sm:p-12 text-center relative overflow-hidden">
+    <h2 class="font-headline-md text-headline-md sm:text-headline-lg">Ready to start?</h2>
+    <p class="mt-2 opacity-90 font-body-md">Create your free account in under a minute.</p>
+    <a href="{% url 'signup' %}" class="mt-6 inline-flex h-12 px-8 items-center gap-2 rounded-xl bg-white text-[#3525cd] font-label-md text-label-md shadow-lg hover:brightness-95">Get started free<span class="material-symbols-outlined text-[20px]">rocket_launch</span></a>
+  </div>
+</section>
+{% endblock %}

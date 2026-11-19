@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}{{ track.title }}{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <div class="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+    <div class="flex items-start gap-4">
+      <span class="icon-tile !w-14 !h-14 bg-gradient-to-br from-primary to-secondary text-on-primary"><span class="material-symbols-outlined text-[28px]">{{ track.icon }}</span></span>
+      <div><a href="{% url 'learn_index' %}" class="font-label-sm text-label-sm text-primary">← All hubs</a><h1 class="page-title">{{ track.title }}</h1><p class="font-body-sm text-body-sm text-on-surface-variant mt-1">{{ track.tagline }}</p></div>
+    </div>
+    <div class="card !p-4 md:w-64 shrink-0"><div class="flex justify-between text-[12px] text-on-surface-variant mb-1"><span>{{ done_count }} / {{ track.topic_count }} done</span><span>{{ percent }}%</span></div><div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: {{ percent }}%"></div></div></div>
+  </div>
+
+  {% if track.disclaimer %}<div class="flex gap-3 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed-variant px-4 py-3 font-body-sm text-body-sm"><span class="material-symbols-outlined">info</span><p>{{ track.disclaimer }}</p></div>{% endif %}
+
+  <!-- timed mock test -->
+  <section class="card !p-5">
+    <div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined filled text-primary">timer</span><h2 class="font-headline-sm text-headline-sm">Timed practice session</h2></div>
+    <form method="post" action="{% url 'mock_create' track.slug %}" data-ajax data-loading="Preparing your test…" class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+      {% csrf_token %}
+      <div data-error class="hidden sm:col-span-2 lg:col-span-5 rounded-xl bg-error-container text-on-error-container px-4 py-3 font-body-sm text-body-sm"></div>
+      <div class="lg:col-span-2"><label class="label" for="m-sec">Section</label><select class="input" id="m-sec" name="section"><option value="all">Full syllabus</option>{% for g in groups %}<option>{{ g.title }}</option>{% endfor %}</select></div>
+      <div><label class="label" for="m-count">Questions</label><select class="input" id="m-count" name="count"><option>10</option><option selected>20</option><option>30</option></select></div>
+      <div><label class="label" for="m-min">Minutes</label><select class="input" id="m-min" name="minutes"><option>10</option><option selected>20</option><option>30</option><option>45</option><option>60</option></select></div>
+      <button class="btn-primary" type="submit" {% if not AI_ENABLED %}disabled{% endif %}><span class="material-symbols-outlined text-[20px]">play_arrow</span>Start test</button>
+    </form>
+    {% if recent_quizzes %}<div class="mt-4 flex flex-wrap gap-2">{% for q in recent_quizzes %}{% with last=q.last_attempt %}<a class="chip hover:bg-primary-fixed" href="{% if last %}{% url 'quiz_result' q.pk last.pk %}{% else %}{% url 'quiz_take' q.pk %}{% endif %}">{{ q.title|truncatechars:34 }}{% if last %} · {{ last.percent }}%{% endif %}</a>{% endwith %}{% endfor %}</div>{% endif %}
+  </section>
+
+  <!-- topics -->
+  {% for g in groups %}
+  <section>
+    <h2 class="font-headline-sm text-headline-sm mb-3">{{ g.title }}</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {% for t in g.topics %}
+      <a href="{% url 'learn_topic' track.slug t.slug %}" class="card card-hover !p-4 flex items-center gap-3">
+        <span class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 {% if t.done %}bg-primary text-on-primary{% else %}bg-surface-container-high text-on-surface-variant{% endif %}"><span class="material-symbols-outlined text-[20px] {% if t.done %}filled{% endif %}">{% if t.done %}check{% else %}menu_book{% endif %}</span></span>
+        <span class="min-w-0 flex-1"><span class="block font-label-md text-label-md leading-5">{{ t.name }}</span>{% if t.ready %}<span class="text-[11px] text-primary">Notes ready</span>{% endif %}</span>
+        <span class="material-symbols-outlined text-outline">chevron_right</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

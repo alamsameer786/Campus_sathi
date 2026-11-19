@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+
+  <!-- greeting + stats -->
+  <section class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div>
+      <p class="font-body-sm text-body-sm text-on-surface-variant">Welcome back,</p>
+      <h1 class="page-title">{{ user.first_name|default:user.username }} 👋</h1>
+      {% if profile.target_exam %}<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Preparing for {{ profile.target_exam }}</p>{% endif %}
+    </div>
+    <div class="grid grid-cols-3 gap-3 md:w-[26rem]">
+      <div class="card !p-3 text-center"><span class="material-symbols-outlined filled text-amber-500 text-[22px]">local_fire_department</span><p class="font-title-md text-title-md">{{ profile.live_streak }}</p><p class="font-label-xs text-label-xs text-on-surface-variant">Day streak</p></div>
+      <div class="card !p-3 text-center"><span class="material-symbols-outlined filled text-secondary text-[22px]">workspace_premium</span><p class="font-title-md text-title-md">{{ profile.karma }}</p><p class="font-label-xs text-label-xs text-on-surface-variant">Karma</p></div>
+      <div class="card !p-3 text-center"><span class="material-symbols-outlined filled text-primary text-[22px]">target</span><p class="font-title-md text-title-md">{% if accuracy is not None %}{{ accuracy }}%{% else %}—{% endif %}</p><p class="font-label-xs text-label-xs text-on-surface-variant">Quiz accuracy</p></div>
+    </div>
+  </section>
+
+  <!-- learning hubs -->
+  <section>
+    <div class="flex items-end justify-between mb-3"><div><span class="eyebrow">Learning hubs</span><h2 class="font-headline-sm text-headline-sm">Continue learning</h2></div><a href="{% url 'learn_index' %}" class="font-label-md text-label-md text-primary">All hubs</a></div>
+    <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {% for t in tracks %}
+      <a href="{% url 'learn_track' t.slug %}" class="card card-hover flex flex-col gap-3">
+        <div class="flex items-center gap-3"><span class="icon-tile bg-primary-fixed text-primary"><span class="material-symbols-outlined">{{ t.icon }}</span></span><div class="min-w-0"><p class="font-label-md text-label-md truncate">{{ t.title }}</p><p class="text-[12px] text-on-surface-variant">{{ t.done }} / {{ t.topic_count }} topics</p></div></div>
+        <div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: {{ t.percent }}%"></div></div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- quick actions -->
+  <section>
+    <span class="eyebrow">Quick actions</span>
+    <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+      <a href="{% url 'upload' %}" class="rounded-2xl p-4 bg-gradient-to-br from-primary-container to-primary text-on-primary flex flex-col gap-1 hover:brightness-110 transition"><span class="material-symbols-outlined">upload_file</span><span class="font-label-md text-label-md">Add notes</span><span class="text-[12px] opacity-80">AI summary &amp; flashcards</span></a>
+      <a href="{% url 'upload' %}?type=paper" class="card card-hover flex flex-col gap-1"><span class="material-symbols-outlined text-secondary">assignment_turned_in</span><span class="font-label-md text-label-md">Add past paper</span><span class="text-[12px] text-on-surface-variant">Get model answers</span></a>
+      <a href="{% url 'exams' %}" class="card card-hover flex flex-col gap-1"><span class="material-symbols-outlined text-primary">sports_score</span><span class="font-label-md text-label-md">Take a quiz</span><span class="text-[12px] text-on-surface-variant">Any topic, any level</span></a>
+      <a href="{% url 'ask' %}" class="card card-hover flex flex-col gap-1"><span class="material-symbols-outlined text-tertiary">auto_awesome</span><span class="font-label-md text-label-md">Ask AI tutor</span><span class="text-[12px] text-on-surface-variant">Worked answers</span></a>
+      <a href="{% url 'resume_list' %}" class="card card-hover flex flex-col gap-1"><span class="material-symbols-outlined text-primary">badge</span><span class="font-label-md text-label-md">Resume maker</span><span class="text-[12px] text-on-surface-variant">{{ resumes_count }} saved</span></a>
+      <a href="{% url 'ppt_list' %}" class="card card-hover flex flex-col gap-1"><span class="material-symbols-outlined text-secondary">slideshow</span><span class="font-label-md text-label-md">Presentations</span><span class="text-[12px] text-on-surface-variant">{{ decks_count }} created</span></a>
+      <a href="{% url 'summarize' %}" class="card card-hover flex flex-col gap-1"><span class="material-symbols-outlined text-tertiary">summarize</span><span class="font-label-md text-label-md">Summarizer</span><span class="text-[12px] text-on-surface-variant">Paste or upload</span></a>
+      <a href="{% url 'interview' %}" class="card card-hover flex flex-col gap-1"><span class="material-symbols-outlined text-primary">record_voice_over</span><span class="font-label-md text-label-md">Mock interview</span><span class="text-[12px] text-on-surface-variant">Get a scorecard</span></a>
+    </div>
+  </section>
+
+  <div class="grid lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2 space-y-8">
+      {% if today_tasks %}
+      <section>
+        <span class="eyebrow">Today's plan</span>
+        <div class="grid sm:grid-cols-2 gap-3 mt-3">
+          {% for t in today_tasks %}
+          <label class="card flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" class="mt-1 w-5 h-5 accent-[#6d5cff]" {% if t.done %}checked{% endif %} data-toggle="{% url 'task_toggle' t.pk %}"/>
+            <span class="flex-1 min-w-0"><span class="block font-label-md text-label-md">{{ t.title }}</span><span class="block text-[12px] text-on-surface-variant">{{ t.plan.title }} · {{ t.minutes }} min</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </section>
+      {% elif next_plan %}
+      <a href="{% url 'planner' %}" class="card card-hover flex items-center gap-4">
+        <span class="icon-tile bg-secondary-fixed text-secondary"><span class="material-symbols-outlined">event</span></span>
+        <div class="flex-1 min-w-0"><p class="font-label-md text-label-md truncate">{{ next_plan.title }}</p><p class="text-[12px] text-on-surface-variant">{{ next_plan.days_left }} day{{ next_plan.days_left|pluralize }} to go · {{ next_plan.progress }}% done</p></div>
+        <span class="material-symbols-outlined text-outline">chevron_right</span>
+      </a>
+      {% else %}
+      <a href="{% url 'planner' %}" class="card card-hover flex items-center gap-4">
+        <span class="icon-tile bg-secondary-fixed text-secondary"><span class="material-symbols-outlined">calendar_month</span></span>
+        <div class="flex-1"><p class="font-label-md text-label-md">Plan your exam revision</p><p class="text-[12px] text-on-surface-variant">AI builds a day-by-day schedule for you</p></div>
+        <span class="material-symbols-outlined text-outline">chevron_right</span>
+      </a>
+      {% endif %}
+
+      {% if mastery or weak_topics %}
+      <section>
+        <span class="eyebrow">Progress</span><h2 class="font-headline-sm text-headline-sm mb-3">Subject mastery</h2>
+        <div class="card space-y-4">
+          {% for m in mastery %}
+          <div>
+            <div class="flex justify-between font-label-md text-label-md mb-1"><span>{{ m.name }}</span><span class="text-primary">{{ m.percent }}%</span></div>
+            <div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: {{ m.percent }}%"></div></div>
+            <p class="text-[11px] text-outline mt-1">from {{ m.total }} quiz answer{{ m.total|pluralize }}</p>
+          </div>
+          {% endfor %}
+          {% if weak_topics %}
+          <div class="pt-3 border-t border-outline-variant/40">
+            <p class="font-label-md text-label-md mb-2 flex items-center gap-1"><span class="material-symbols-outlined text-error text-[18px]">radar</span>Weak-spot radar</p>
+            <div class="flex flex-wrap gap-2">{% for t in weak_topics %}<a href="{% url 'exams' %}?topic={{ t.topic|urlencode }}#quiz" class="chip !bg-error-container !text-on-error-container">{{ t.topic }} · {{ t.accuracy }}%</a>{% endfor %}</div>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+      {% endif %}
+
+      <section>
+        <div class="flex items-end justify-between mb-3"><div><span class="eyebrow">Library</span><h2 class="font-headline-sm text-headline-sm">Recent notes</h2></div><a href="{% url 'notes' %}" class="font-label-md text-label-md text-primary">See all</a></div>
+        <div class="grid sm:grid-cols-2 gap-3">
+          {% for m in recent_materials %}{% include 'partials/_material_card.html' %}{% empty %}
+          <div class="sm:col-span-2">{% url 'upload' as up %}{% include 'partials/_empty.html' with icon='upload_file' title='No notes yet' text='Upload your first note or paste some text to get an AI summary.' url=up cta='Add notes' %}</div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="space-y-8">
+      <section>
+        <span class="eyebrow">Community</span><h2 class="font-headline-sm text-headline-sm mb-3">Top learners</h2>
+        <div class="card !p-2">
+          {% for p in leaders %}
+          <div class="flex items-center gap-3 px-2 py-2 rounded-xl {% if p.user_id == user.id %}bg-primary-fixed{% endif %}">
+            <span class="w-6 text-center font-label-md text-label-md text-outline">{{ forloop.counter }}</span>
+            <span class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-on-primary flex items-center justify-center overflow-hidden shrink-0 font-label-sm uppercase">{% if p.avatar %}<img src="{{ p.avatar.url }}" alt="" class="w-full h-full object-cover"/>{% else %}{{ p.user.username|slice:":1" }}{% endif %}</span>
+            <span class="flex-1 min-w-0 truncate font-label-md text-label-md">{{ p.user.username }}</span>
+            <span class="font-label-sm text-label-sm text-secondary">{{ p.karma }}</span>
+          </div>
+          {% empty %}<p class="px-3 py-4 text-center font-body-sm text-body-sm text-on-surface-variant">Earn karma by finishing topics, quizzes and sharing notes.</p>{% endfor %}
+        </div>
+      </section>
+      {% if recent_attempts %}
+      <section>
+        <span class="eyebrow">History</span><h2 class="font-headline-sm text-headline-sm mb-3">Recent quizzes</h2>
+        <div class="space-y-3">
+          {% for a in recent_attempts %}
+          <a href="{% url 'quiz_result' a.quiz.pk a.pk %}" class="card card-hover flex items-center justify-between"><span class="min-w-0"><span class="block font-label-md text-label-md truncate">{{ a.quiz.title }}</span><span class="block text-[12px] text-on-surface-variant">{{ a.taken_at|timesince }} ago</span></span><span class="font-title-md text-title-md {% if a.percent >= 60 %}text-primary{% else %}text-error{% endif %}">{{ a.percent }}%</span></a>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+      {% if recent_videos %}
+      <section>
+        <div class="flex items-end justify-between mb-3"><div><span class="eyebrow">Watch</span><h2 class="font-headline-sm text-headline-sm">Videos</h2></div><a href="{% url 'videos' %}" class="font-label-md text-label-md text-primary">See all</a></div>
+        <div class="space-y-3">{% for v in recent_videos %}{% include 'partials/_video_card.html' %}{% endfor %}</div>
+      </section>
+      {% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-toggle]').forEach(cb => cb.addEventListener('change', async () => {
+  const r = await CampusIQ.post(cb.dataset.toggle, {});
+  if (!r.ok) { cb.checked = !cb.checked; CampusIQ.toast(r.error || 'Could not update task.'); }
+}));
+</script>
+{% endblock %}
